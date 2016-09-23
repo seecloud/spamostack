@@ -1,5 +1,8 @@
 import leveldb
-from common import CommonMethods
+import os
+
+from client_factory import ClientFactory
+
 
 class Cache(object):
     def __init__(self, path='./db'):
@@ -12,7 +15,16 @@ class Cache(object):
 
         self.db = leveldb.LevelDB(path)
         self.cache = dict()
+        default_init()
+        self.client_factory = ClientFactory()
         self.load()
+
+    def default_init(self):
+        self.cache["created"]["users"][os.environ['OS_USERNAME']]['password'] = os.environ['OS_PASSWORD']
+        self.cache["created"]["users"][os.environ['OS_USERNAME']]['project_name'] = os.environ['OS_TENANT_NAME']
+        self.cache["auth_url"] = os.environ['OS_AUTH_URL']
+        self.cache["created"]["users"][os.environ['OS_USERNAME']]['project_domain_id'] = 'default'
+        self.cache["created"]["users"][os.environ['OS_USERNAME']]['user_domain_id'] = 'default'
 
     def convert_str_to_obj(self, name, cache_elem):
         """
