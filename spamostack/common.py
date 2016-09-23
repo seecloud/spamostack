@@ -34,18 +34,3 @@ class CommonMethods():
         rand_part = "".join(random.choice(choice) for i in range(length))
         return prefix + rand_part
 
-    def convert_str_to_obj(self, name, cache_elem):
-        """
-
-        :param name:
-        :param cache_elem:
-        :return:
-        """
-        client = getattr(self.client_factory, name)
-        for i in cache_elem.split(','):
-            if i.startswith("id="):
-                idx = i.split('=')[1]
-
-        obj = client.get(id=idx)
-
-        return obj
