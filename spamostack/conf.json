@@ -1,0 +1,40 @@
+{
+  "pipe1":
+  {
+    "keystone":
+    {
+      "projects":
+      {
+        "create": [60, 3, 2],
+        "update": [60, 2, 2]
+      },
+      "users":
+      {
+        "create": [60, 5, 2],
+        "update": [120, 12, 1]
+      }
+    }
+  },
+  "pipe2":
+  {
+    "keystone":
+    {
+      "projects":
+      {
+        "create": [120, 4, 2]
+      },
+      "users":
+      {
+        "create": [120, 6, 1]
+      },
+      "projects":
+      {
+        "update": [60, 3, 1]
+      },
+      "users":
+      {
+        "update": [60, 5, 1]
+      }
+    }
+  }
+}
