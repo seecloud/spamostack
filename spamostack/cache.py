@@ -32,18 +32,15 @@ class Cache(object):
 
     def load(self):
         """Load db into cache"""
-	def loop(pipe, name):
-            for key, value in pipe.iteritems():
-
+	def loop(tasks, name):
+            for key, value in tasks.iteritems():
                 if isinstance(value, dict):
                     loop(value, name)
                 else:
-                    convert_str_to_obj(name, value)
+                    tasks[key] = [convert_str_to_obj(name, el) for el in value]
 
         for key, value in self.db.RangeIter():
-            loop(value, key)
-		
-            self.cache[key] = eval(value)
+            loop(eval(value), key)
 
     def update(self):
         """Update existing db with data from cache"""
