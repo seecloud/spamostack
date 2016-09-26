@@ -1,12 +1,52 @@
 from session import Session
-from keystoneclient.v3.client import Client as KeystoneClient
 from resource import Resource
 
+import inspect
+
+from keystoneclient.v3.client import Client as KeystoneClient
+from neutronclient.v2_0.client import Client as NeutronClient
+from cinderclient.v3.client import Client as CidnerClient
+from novaclient.v2.client import Client as NovaClient
+from glanceclient.v2.client import Client as GlanceClient
+
+
+def get_class(func):
+    for cls in inspect.getmro(func.im_class):
+        if func.__name__ in cls.__dict__:
+            return cls
+    return None
 
 def cache(func):
     def wrapper(self, *args, **kwargs):
-        created = func(self, *args, **kwargs)
-        self.cache[][created.id] = Resource()
+        processed = func(self, *args, **kwargs)
+        section = ""
+
+        if "user" in func.__name__:
+            section = "users"
+        elif "projec" in func.__name__:
+            section = "projects"
+        self.cache[get_class(func).__name__.lower()][section]. \
+            append(Resource(processed.id))
+
+        return processed
+
+    return wrapper
+
+def uncache(func):
+    def wrapper(self, *args, **kwargs):
+        obj = kwargs[kwargs.keys()[0]]
+        processed = func(self, *args, **kwargs)
+        section = ""
+
+        if "user" in func.__name__:
+            section = "users"
+        elif "projec" in func.__name__:
+            section = "projects"
+        self.cache[get_class(func).__name__.lower()][section].remove(obj.id)
+
+        return processed
+
+    return wrapper
 
 
 class Keystone(KeystoneClient, object):
@@ -21,66 +61,77 @@ class Keystone(KeystoneClient, object):
         super(Keystone, self).__init__(session=self.session.session)
 
         self._users_create = self.users.create
-        self.users.create = self.users_create
+        self.users.create = self.user_create
         self._users_update = self.users.update
-        self.users.update = self.users_update
+        self.users.update = self.user_update
         self._users_delete = self.users.delete
-        self.users.delete = self.users_delete
+        self.users.delete = self.user_delete
 
         self._projects_create = self.projects.create
-        self.projects.create = self.projects_create
+        self.projects.create = self.project_create
         self._projects_update = self.projects.update
-        self.projects.update = self.projects_update
+        self.projects.update = self.project_update
         self._projects_delete = self.projects.delete
-        self.projects.delete = self.projects_delete
+        self.projects.delete = self.project_delete
 
 
     @cache
-    def users_create(self):
-        return self._users_create(self.generate_random_name(),
-                                  "default",
-                                  self.generate_random_password(),
-                                  self.generate_random_email(),
-                                  "User with name {}".format(),
-                                  True,
-                                  self.get_unused("default_project"))
+    def user_create(self):
+        name = self.generate_random_name()
+        return self._users_create(name=name,
+                                  domain="default",
+                                  password=self.generate_random_password(),
+                                  email=self.generate_random_email(),
+                                  description="User with name {}".format(name),
+                                  enabled=True,
+                                  default_project=\
+                                    self.get_random(self.cache["keystone"]
+                                                    ["projects"]))
 
-    def users_update(self):
-        pass
+    @cache
+    def user_update(self):
+        name = self.generate_random_name()
+        return self._users_update(user=self.get_random(self.cache
+                                                       ["keystone"]
+                                                       ["users"]),
+                                  name=name,
+                                  domain="default",
+                                  password=self.generate_random_password(),
+                                  email=self.generate_random_email(),
+                                  description="User with name {}".format(name),
+                                  enabled=True,
+                                  default_project=\
+                                    self.get_random(self.cache["keystone"]
+                                                    ["projects"]))
 
-    def users_delete(self):
-        pass
+    @uncache
+    def user_delete(self):
+        return self._users_delete(self.get_random(self.cache["keystone"]
+                                                  ["users"]))
 
-    def projects_create(self):
-        pass
+    @cache
+    def project_create(self):
+        name = self.generate_random_name()
+        return self._projects_create(name=name,
+                                     domain="default",
+                                     description="Project {}".format(name),
+                                     enabled=True)
 
-    def projects_update(self):
-        pass
+    @cache
+    def project_update(self):
+        name = self.generate_random_name()
+        return self._projects_update(project=self.get_random(self.cache
+                                                             ["keystone"]
+                                                             ["projects"]),
+                                     name=name,
+                                     domain="default",
+                                     description="Project {}".format(name),
+                                     enabled=True)
 
-    def projects_delete(self):
-        pass
-
-
-'''Client.projects.create(self, name, domain, description, enabled, parent)
-Client.projects.update(self, project, name, domain, description, enabled)
-Client.projects.get(self, project, subtree_as_list, parents_as_list, subtree_as_ids, parents_as_ids)
-Client.projects.list(self, domain, user)
-Client.projects.delete(self, project)
-Client.endpoints.create(self, service, url, interface, region, enabled)
-Client.endpoints.update(self, endpoint, service, url, interface, region, enabled)
-Client.endpoints.get(self, endpoint)
-Client.projects.find(self)
-Client.endpoints.list(self, service, interface, region, enabled, region_id)
-Client.endpoints.delete(self, endpoint)
-Client.users.create(self, name, domain, project, password, email, description, enabled, default_project)
-Client.users.update(self, user, name, domain, project, password, email, description, enabled, default_project)
-Client.users.get(self, user)
-Client.users.list(self, project, domain, group, default_project)
-Client.users.delete(self, user)
-'''
-
-
-from neutronclient.v2_0.client import Client as NeutronClient
+    @uncache
+    def project_delete(self):
+        return self._projects_delete(self.get_random(self.cache["keystone"]
+                                                     ["projects"]))
 
 
 class Neutron(NeutronClient, object):
@@ -88,15 +139,9 @@ class Neutron(NeutronClient, object):
         pass
 
 
-from cinderclient.v3.client import Client as CidnerClient
-
-
 class Cidner(CidnerClient, object):
     def __init__(self, cache):
         pass
-
-
-from novaclient.v2.client import Client as NovaClient
 
 
 class Nova(NovaClient, object):
@@ -104,18 +149,6 @@ class Nova(NovaClient, object):
         pass
 
 
-from glanceclient.v2.client import Client as GlanceClient
-
-
 class Glance(GlanceClient, object):
     def __init__(self, cache):
         pass
-
-
-
-
-
-
-
-
-
