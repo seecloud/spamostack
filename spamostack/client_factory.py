@@ -1,5 +1,6 @@
 from session import Session
 from resource import Resource
+from common import CommonMethods
 
 import inspect
 
@@ -23,7 +24,7 @@ def cache(func):
 
         if "user" in func.__name__:
             section = "users"
-        elif "projec" in func.__name__:
+        elif "project" in func.__name__:
             section = "projects"
         self.cache[get_class(func).__name__.lower()][section]. \
             append(Resource(processed.id))
@@ -40,7 +41,7 @@ def uncache(func):
 
         if "user" in func.__name__:
             section = "users"
-        elif "projec" in func.__name__:
+        elif "project" in func.__name__:
             section = "projects"
         self.cache[get_class(func).__name__.lower()][section].remove(obj.id)
 
@@ -49,8 +50,16 @@ def uncache(func):
     return wrapper
 
 
-class Keystone(KeystoneClient, object):
+class Keystone(KeystoneClient, CommonMethods, object):
     def __init__(self, cache, active_session=None):
+        """
+        Create `Keystone` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+        @param active_session: Specific session for that client
+        @type active_session: `session.Session`
+        """
 
         self.cache = cache
         if active_session:
@@ -73,7 +82,6 @@ class Keystone(KeystoneClient, object):
         self.projects.update = self.project_update
         self._projects_delete = self.projects.delete
         self.projects.delete = self.project_delete
-
 
     @cache
     def user_create(self):
