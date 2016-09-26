@@ -1,107 +1,119 @@
 from session import Session
+from keystoneclient.v3.client import Client as KeystoneClient
+from resource import Resource
 
 
-class ClientFactory(object):
-    def __init__(self, cache):
-        """
-        Create instance of `OSClient` class
+def cache(func):
+    def wrapper(self, *args, **kwargs):
+        created = func(self, *args, **kwargs)
+        self.cache[][created.id] = Resource()
 
-        @param cahce: Reference to the cache
-        @type cache: spamostack.cache.Cache
-        """
+
+class Keystone(KeystoneClient, object):
+    def __init__(self, cache, active_session=None):
 
         self.cache = cache
-
-    def keystone(self, version="3", active_session=None):
-        """
-        Create Keystone client
-
-        @param version: Version of the client
-        @type version: `str`
-        """
-
-        from keystoneclient.client import Client
-
-        if active_session is not None:
-            session = active_session
+        if active_session:
+            self.session = active_session
         else:
-            session = Session(self.cache)
+            self.session = Session(self.cache)
 
-        client = Client(version, session=session.session)
-        session.parent = client
+        super(Keystone, self).__init__(session=self.session.session)
 
-        return client
+        self._users_create = self.users.create
+        self.users.create = self.users_create
+        self._users_update = self.users.update
+        self.users.update = self.users_update
+        self._users_delete = self.users.delete
+        self.users.delete = self.users_delete
 
-    def neutron(self, version="2", active_session=None):
-        """
-        Create Neutron client
+        self._projects_create = self.projects.create
+        self.projects.create = self.projects_create
+        self._projects_update = self.projects.update
+        self.projects.update = self.projects_update
+        self._projects_delete = self.projects.delete
+        self.projects.delete = self.projects_delete
 
-        @param version: Version of the client
-        @type version: `str`
-        """
 
-        from neutronclient.client import Client
+    @cache
+    def users_create(self):
+        return self._users_create(self.generate_random_name(),
+                                  "default",
+                                  self.generate_random_password(),
+                                  self.generate_random_email(),
+                                  "User with name {}".format(),
+                                  True,
+                                  self.get_unused("default_project"))
 
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache)
+    def users_update(self):
+        pass
 
-        client = Client(version, session=session.session)
-        session.parent = client
+    def users_delete(self):
+        pass
 
-        return client
+    def projects_create(self):
+        pass
 
-    def cinder(self, version="3", active_session=None):
-        """
-        Create Cinder client
-        """
+    def projects_update(self):
+        pass
 
-        from cinderclient.client import Client
+    def projects_delete(self):
+        pass
 
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache)
 
-        client = Client(version, session=session.session)
-        session.parent = client
+'''Client.projects.create(self, name, domain, description, enabled, parent)
+Client.projects.update(self, project, name, domain, description, enabled)
+Client.projects.get(self, project, subtree_as_list, parents_as_list, subtree_as_ids, parents_as_ids)
+Client.projects.list(self, domain, user)
+Client.projects.delete(self, project)
+Client.endpoints.create(self, service, url, interface, region, enabled)
+Client.endpoints.update(self, endpoint, service, url, interface, region, enabled)
+Client.endpoints.get(self, endpoint)
+Client.projects.find(self)
+Client.endpoints.list(self, service, interface, region, enabled, region_id)
+Client.endpoints.delete(self, endpoint)
+Client.users.create(self, name, domain, project, password, email, description, enabled, default_project)
+Client.users.update(self, user, name, domain, project, password, email, description, enabled, default_project)
+Client.users.get(self, user)
+Client.users.list(self, project, domain, group, default_project)
+Client.users.delete(self, user)
+'''
 
-        return client
 
-    def nova(self, version="3", active_session=None):
-        """
-        Create Nova client
-        """
+from neutronclient.v2_0.client import Client as NeutronClient
 
-        from novaclient.client import Client
 
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache)
+class Neutron(NeutronClient, object):
+    def __init__(self, cache):
+        pass
 
-        client = Client(version, session=session.session)
-        session.parent = client
 
-        return client
+from cinderclient.v3.client import Client as CidnerClient
 
-    def glance(self, version="3", active_session=None):
-        """
-        Create Glance client
-        """
 
-        from glanceclient.client import Client
+class Cidner(CidnerClient, object):
+    def __init__(self, cache):
+        pass
 
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache)
 
-        client = Client(version, session=session.session)
-        session.parent = client
+from novaclient.v2.client import Client as NovaClient
 
-        return client
+
+class Nova(NovaClient, object):
+    def __init__(self, cache):
+        pass
+
+
+from glanceclient.v2.client import Client as GlanceClient
+
+
+class Glance(GlanceClient, object):
+    def __init__(self, cache):
+        pass
+
+
+
+
 
 
 
