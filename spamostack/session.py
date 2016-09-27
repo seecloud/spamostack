@@ -36,16 +36,16 @@ class Session(CommonMethods, object):
     def new_session(self):
         """Initiate new session"""
 
-        self.user = self.get_unused(self.cache["users"])
+        self.user = self.get_unused(self.cache["keystone"]["users"])
         auth = v3.Password(auth_url=self.cache["auth_url"],
                            username=self.user.name,
-                           password=self.cache["created"]["users"]
+                           password=self.cache["created"]["users"] \
                                     [self.user.name]["password"],
-                           project_name=self.cache["created"]["users"]
+                           project_name=self.cache["created"]["users"] \
                                         [self.user.name]["project_name"],
                            user_domain_id=self.user.domain_id,
-                           project_domain_id=self.cache["created"]["users"]
-                                             [self.user.name]
+                           project_domain_id=self.cache["created"]["users"] \
+                                             [self.user.name] \
                                              ["project_domain_id"])
 
         return session.Session(auth=auth)

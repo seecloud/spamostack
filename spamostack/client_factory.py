@@ -86,15 +86,23 @@ class Keystone(KeystoneClient, CommonMethods, object):
     @cache
     def user_create(self):
         name = self.generate_random_name()
-        return self._users_create(name=name,
+        password = self.generate_random_password()
+        project = self.get_random(self.cache["keystone"]["projects"])
+        user = self._users_create(name=name,
                                   domain="default",
-                                  password=self.generate_random_password(),
+                                  password=password,
                                   email=self.generate_random_email(),
                                   description="User with name {}".format(name),
                                   enabled=True,
-                                  default_project=\
-                                    self.get_random(self.cache["keystone"]
-                                                    ["projects"]))
+                                  default_project=project)
+
+        self.roles.grant(self.roles.find(name="admin")), user, project=project)
+        self.cache["created"]["users"][name]["password"] = password
+        self.cache["created"]["users"][name]["project_name"] = project.name
+        self.cache["created"]["users"][name]["project_domain_id"] = \
+            project.domain_id
+
+        return user
 
     @cache
     def user_update(self):
@@ -107,10 +115,7 @@ class Keystone(KeystoneClient, CommonMethods, object):
                                   password=self.generate_random_password(),
                                   email=self.generate_random_email(),
                                   description="User with name {}".format(name),
-                                  enabled=True,
-                                  default_project=\
-                                    self.get_random(self.cache["keystone"]
-                                                    ["projects"]))
+                                  enabled=True)
 
     @uncache
     def user_delete(self):

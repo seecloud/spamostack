@@ -1,3 +1,6 @@
+from simulator import Simulator
+
+
 def main():
     pass
 
