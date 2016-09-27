@@ -54,20 +54,25 @@ class Cache(MutableMapping, object):
     def load(self):
         """Load db into cache"""
 
-        def to_objects(cache_elem, client_name):
+        def to_objects(cache_elem, client_name, is_key):
             for key, value in cache_elem.iteritems():
                 if isinstance(value, dict):
                     to_objects(value, client_name)
-                elif:
-                    cache_elem[key] = [getattr(self.client_factory,
-                                               client_name).get(id=el)
-                                       for el in value]
                 else:
-                    cache_elem[key] = eval(value)
+                    if is_key:
+                        cache_elem[key] = eval(value)
+                    else:
+                        cache_elem[key] = [getattr(self.client_factory,
+                                                   client_name).get(id=el)
+                                           for el in value]
 
         for key, value in self.db.RangeIter():
             self.cache[key] = value
-            to_objects(eval(self.cache[key]), key)
+            if key == 'created':
+                is_key = True
+            else:
+                is_key = False
+            to_objects(eval(self.cache[key]), key, is_key)
 
     def update(self):
         """Update existing db with data from cache"""
