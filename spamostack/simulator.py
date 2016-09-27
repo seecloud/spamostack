@@ -34,13 +34,13 @@ class Simulator(CommonMethods, object):
                 if isinstance(value, dict):
                     loop(pipe_client, value, attr)
                 else:
-                    self.rotate(pipe_client, attr, *value)
+                    self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
             client = getattr(self.client_factory, pipe_client)(self.session)
             loop(pipe_client, pipe, client)
 
-    def rotate(self, name, func, period, number, count):
+    def rotate(self, func, period, number, count):
         """
         Execute method specific number of times in the period and repeat it
         specific number of times.
@@ -57,5 +57,5 @@ class Simulator(CommonMethods, object):
 
         for cycle in xrange(count):
             for execute in xrange(number):
-                self.execute(name, func)
+                func()
                 time.sleep(randint(0, period / number))

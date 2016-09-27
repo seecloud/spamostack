@@ -26,8 +26,8 @@ def cache(func):
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
-        self.cache[get_class(func).__name__.lower()][section]. \
-            append(Resource(processed.id))
+        self.cache[get_class(func).__name__.lower()][section][processed.id].\
+            setdefault(False)
 
         return processed
 
@@ -43,11 +43,101 @@ def uncache(func):
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
-        self.cache[get_class(func).__name__.lower()][section].remove(obj.id)
+        del self.cache[get_class(func).__name__.lower()][section][processed.id]
 
         return processed
 
     return wrapper
+
+
+class ClientFactory(object):
+    def __init__(self, cache):
+        """
+        Create instance of `ClientFactory` class
+        @param cahce: Reference to the cache
+        @type cache: spamostack.cache.Cache
+        """
+
+        self.cache = cache
+
+    def keystone(self, active_session=None):
+        """
+        Create Keystone client
+        @param version: Version of the client
+        @type version: `str`
+        """
+
+        if active_session is not None:
+            session = active_session
+        else:
+            session = Session(self.cache)
+
+        client = Keystone(self.cache, session=session)
+        session.parent = client
+
+        return client
+
+    def neutron(self, active_session=None):
+        """
+        Create Neutron client
+        @param version: Version of the client
+        @type version: `str`
+        """
+
+        if active_session is not None:
+            session = active_session
+        else:
+            session = Session(self.cache)
+
+        client = Neutron(self.cache, session=session)
+        session.parent = client
+
+        return client
+
+    def cinder(self, active_session=None):
+        """
+        Create Cinder client
+        """
+
+        if active_session is not None:
+            session = active_session
+        else:
+            session = Session(self.cache)
+
+        client = Cinder(self.cache, session=session)
+        session.parent = client
+
+        return client
+
+    def nova(self, active_session=None):
+        """
+        Create Nova client
+        """
+
+        if active_session is not None:
+            session = active_session
+        else:
+            session = Session(self.cache)
+
+        client = Nova(self.cache, session=session)
+        session.parent = client
+
+        return client
+
+    def glance(self, active_session=None):
+        """
+        Create Glance client
+        """
+
+        if active_session is not None:
+            session = active_session
+        else:
+            session = Session(self.cache)
+
+        client = Glance(self.cache, session=session)
+        session.parent = client
+
+        return client
 
 
 class Keystone(KeystoneClient, CommonMethods, object):
@@ -152,7 +242,7 @@ class Neutron(NeutronClient, object):
         pass
 
 
-class Cidner(CidnerClient, object):
+class Cinder(CinderClient, object):
     def __init__(self, cache):
         pass
 
