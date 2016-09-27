@@ -1,12 +1,11 @@
 from session import Session
-from resource import Resource
 from common import CommonMethods
 
 import inspect
 
 from keystoneclient.v3.client import Client as KeystoneClient
 from neutronclient.v2_0.client import Client as NeutronClient
-from cinderclient.v3.client import Client as CidnerClient
+from cinderclient.v3.client import Client as CinderClient
 from novaclient.v2.client import Client as NovaClient
 from glanceclient.v2.client import Client as GlanceClient
 

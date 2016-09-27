@@ -10,7 +10,7 @@ from session import Session
 
 def threader(func):
     def wrapper(self, *args, **kwargs):
-        threading.Thread(target=func, args=(*args, **kwargs)).start()
+        threading.Thread(target=func, args=(args, kwargs)).start()
 
 
 class Simulator(CommonMethods, object):

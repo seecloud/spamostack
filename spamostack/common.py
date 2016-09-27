@@ -1,22 +1,15 @@
 import random
 import string
 
-#from cache import Cache
-#from client_factory import ClientFactory
-
 
 class CommonMethods():
     def __init__(self, cache):
-        self.cache = '' #cache
-        self.client_factory = ''#ClientFactory(self.cache)
+        self.cache = cache
 
     def get_unused(self, name, resource):
         if self.cache[name][resource]['used'] is False:
             self.cache[name][resource]['used'] = True
             return self.cache[name][resource]
-
-    def execute(self, name, func):
-        pass
 
     _ASCII_LETTERS_AND_DIGITS = string.ascii_letters + string.digits
 
