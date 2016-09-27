@@ -186,7 +186,7 @@ class Keystone(KeystoneClient, CommonMethods, object):
                                   enabled=True,
                                   default_project=project)
 
-        self.roles.grant(self.roles.find(name="admin")), user, project=project)
+        self.roles.grant(self.roles.find(name="admin"), user, project=project)
         self.cache["created"]["users"][name]["password"] = password
         self.cache["created"]["users"][name]["project_name"] = project.name
         self.cache["created"]["users"][name]["project_domain_id"] = \

@@ -1,14 +1,14 @@
 import random
 import string
 
-from cache import Cache
-from client_factory import ClientFactory
+#from cache import Cache
+#from client_factory import ClientFactory
 
 
 class CommonMethods():
     def __init__(self, cache):
-        self.cache = cache
-        self.client_factory = ClientFactory(self.cache)
+        self.cache = '' #cache
+        self.client_factory = ''#ClientFactory(self.cache)
 
     def get_unused(self, name, resource):
         if self.cache[name][resource]['used'] is False:
@@ -34,3 +34,17 @@ class CommonMethods():
         rand_part = "".join(random.choice(choice) for i in range(length))
         return prefix + rand_part
 
+    @staticmethod
+    def generate_random_password():
+        return CommonMethods.generate_random_name()
+
+    @staticmethod
+    def generate_random_email():
+        return CommonMethods.generate_random_name(length=3, choice=string.ascii_lowercase)+'@'\
+               +CommonMethods.generate_random_name(length=3, choice=string.ascii_lowercase)+'.'\
+               +CommonMethods.generate_random_name(length=3, choice=string.ascii_lowercase)
+
+
+print CommonMethods.generate_random_name()
+print CommonMethods.generate_random_password()
+print CommonMethods.generate_random_email()
