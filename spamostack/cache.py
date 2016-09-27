@@ -81,8 +81,6 @@ class Cache(MutableMapping, object):
             for key, value in cache_elem.iteritems():
                 if isinstance(value, dict):
                     to_strings(value)
-                elif isinstance(value, list):
-                    cache_elem[key] = [str(el.id) for el in value]
                 else:
                     cache_elem[key] = str(value)
 
