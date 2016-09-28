@@ -23,7 +23,6 @@ log.setLevel(logging.DEBUG)
 log.addHandler(logger.SpamStreamHandler())
 
 def main():
-
     if args.pipelines:
         with open(args.pipelines, 'r') as pipes_file:
             pipelines = json.load(pipes_file, object_pairs_hook=OrderedDict)

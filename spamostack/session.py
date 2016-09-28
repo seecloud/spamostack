@@ -8,9 +8,9 @@ class Session(object):
         Create instance of `Session` class
 
         @param cahce: Reference to the cache
-        @type cache: spamostack.cache.Cache
-        @param parent: Parent client for this session
-        @type parent: `Client`
+        @type cache: `spamostack.cache.Cache`
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
         """
 
         self.user = None

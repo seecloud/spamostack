@@ -15,6 +15,18 @@ def threader(func):
 
 class Simulator(object):
     def __init__(self, name, pipeline, cache, keeper):
+        """
+        Create an instance of `Simulator` class
+
+        @param name: Name of the pipeline
+        @type name: `str`
+        @param pipeline: Pipeline to be executed
+        @type pipeline: `dict`
+        @param cahce: Reference to the cache
+        @type cache: `spamostack.cache.Cache`
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
 
         self.name = name
         self.pipeline = pipeline

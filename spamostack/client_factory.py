@@ -44,8 +44,11 @@ class ClientFactory(object):
     def __init__(self, cache, keeper=None):
         """
         Create instance of `ClientFactory` class
+
         @param cahce: Reference to the cache
         @type cache: spamostack.cache.Cache
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
         """
 
         self.cache = cache
@@ -54,8 +57,9 @@ class ClientFactory(object):
     def keystone(self, active_session=None):
         """
         Create Keystone client
-        @param version: Version of the client
-        @type version: `str`
+
+        @param active_session: Active session instead of creating new one
+        @type active_session: `session.Session`
         """
 
         if active_session is not None:
@@ -70,8 +74,9 @@ class ClientFactory(object):
     def neutron(self, active_session=None):
         """
         Create Neutron client
-        @param version: Version of the client
-        @type version: `str`
+
+        @param active_session: Active session instead of creating new one
+        @type active_session: `session.Session`
         """
 
         if active_session is not None:
@@ -86,6 +91,9 @@ class ClientFactory(object):
     def cinder(self, active_session=None):
         """
         Create Cinder client
+
+        @param active_session: Active session instead of creating new one
+        @type active_session: `session.Session`
         """
 
         if active_session is not None:
@@ -100,6 +108,9 @@ class ClientFactory(object):
     def nova(self, active_session=None):
         """
         Create Nova client
+
+        @param active_session: Active session instead of creating new one
+        @type active_session: `session.Session`
         """
 
         if active_session is not None:
@@ -114,6 +125,9 @@ class ClientFactory(object):
     def glance(self, active_session=None):
         """
         Create Glance client
+
+        @param active_session: Active session instead of creating new one
+        @type active_session: `session.Session`
         """
 
         if active_session is not None:
@@ -133,6 +147,8 @@ class Keystone(KeystoneClient, object):
 
         @param cache: Cache
         @type cache: `cache.Cache`
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
         @param active_session: Specific session for that client
         @type active_session: `session.Session`
         """

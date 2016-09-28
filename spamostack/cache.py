@@ -31,6 +31,10 @@ class Cache(MutableMapping, object):
         self.db.Put(key, str(value))
         self.cache[key] = value
 
+    def setdefault(self, key, value=None):
+        self.db.Put(key, str(value))
+        return self.cache.setdefault(key, value)
+
     def __delitem__(self, key):
         del self.cache[key]
 
