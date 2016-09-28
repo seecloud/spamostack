@@ -1,0 +1,5 @@
+import spamostack.spamostack as spamostack_main
+
+
+def main():
+    spamostack_main.main()

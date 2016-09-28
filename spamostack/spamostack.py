@@ -21,7 +21,7 @@ def main():
         with open(args.pipelines, 'r') as pipes_file:
             pipelines = json.load(pipes_file)
 
-    simulalators = []
+    simulators = []
     cache = Cache(args.db)
 
     admin_session = Session(cache)
@@ -31,8 +31,8 @@ def main():
     for pipe_name, pipe in pipelines.iteritems():
         simulalators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
 
-    for simulator in simulalators:
-        simulalator.simulate()
+    for simulator in simulators:
+        simulator.simulate()
 
 if __name__ == "__main__":
     main()
