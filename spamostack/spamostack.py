@@ -1,4 +1,5 @@
 import argparse
+from collections import OrderedDict
 import json
 
 from session import Session
@@ -19,7 +20,7 @@ args = parser.parse_args()
 def main():
     if args.pipelines:
         with open(args.pipelines, 'r') as pipes_file:
-            pipelines = json.load(pipes_file)
+            pipelines = json.load(pipes_file, object_pairs_hook=OrderedDict)
 
     simulators = []
     cache = Cache(args.db)
@@ -29,7 +30,7 @@ def main():
     admin_keeper = Keeper(cache, admin_session, admin_factory)
 
     for pipe_name, pipe in pipelines.iteritems():
-        simulalators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
+        simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
 
     for simulator in simulators:
         simulator.simulate()

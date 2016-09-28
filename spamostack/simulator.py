@@ -3,7 +3,6 @@ from random import randint
 import threading
 from collections import OrderedDict
 
-from keeper import Keeper
 from client_factory import ClientFactory
 from session import Session
 
