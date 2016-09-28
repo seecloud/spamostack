@@ -18,14 +18,14 @@ def main():
         with open(args.pipelines, 'r') as pipes_file:
             pipelines = json.load(pipes_file)
 
-    simulalators = []
+    simulators = []
     cache = Cache(args.db)
 
     for pipe_name, pipe in pipelines.iteritems():
-        simulalators.append(Simulator(pipe_name, pipe, cache))
+        simulators.append(Simulator(pipe_name, pipe, cache))
 
-    for simulator in simulalators:
-        simulalator.simulate()
+    for simulator in simulators:
+        simulator.simulate()
 
 if __name__ == "__main__":
     main()
