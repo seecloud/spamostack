@@ -1,6 +1,0 @@
-#!/usr/bin/env python
-
-import spamostack.spamostack as spamostack_main
-
-
-spamostack_main.main()
