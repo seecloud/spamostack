@@ -1,8 +1,12 @@
 from collections import MutableMapping
+from collections import defaultdict
 import leveldb
 import os
 
 from client_factory import ClientFactory
+
+
+nested_dict = lambda: defaultdict(nested_dict)
 
 
 class Cache(MutableMapping, object):
@@ -15,9 +19,9 @@ class Cache(MutableMapping, object):
         """
 
         self.db = leveldb.LevelDB(path)
-        self.cache = dict()
+        self.cache = nested_dict()
         self.default_init()
-        self.client_factory = ClientFactory()
+        self.client_factory = ClientFactory(self)
         self.load()
 
     # Concrete methods for MutableMapping
@@ -46,7 +50,7 @@ class Cache(MutableMapping, object):
         self.cache["created"]["users"][uname]['password'] = \
             os.environ['OS_PASSWORD']
         self.cache["created"]["users"][uname]['project_name'] = \
-            os.environ['OS_TENANT_NAME']
+            os.environ['OS_PROJECT_NAME']
         self.cache["auth_url"] = os.environ['OS_AUTH_URL']
         self.cache["created"]["users"][uname]['project_domain_id'] = 'default'
         self.cache["created"]["users"][uname]['user_domain_id'] = 'default'

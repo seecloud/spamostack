@@ -14,10 +14,9 @@ args = parser.parse_args()
 
 
 def main():
-
     if args.pipelines:
         with open(args.pipelines, 'r') as pipes_file:
-            piplines = json.load(pipes_file)
+            pipelines = json.load(pipes_file)
 
     simulalators = []
     cache = Cache(args.db)
@@ -28,5 +27,5 @@ def main():
     for simulator in simulalators:
         simulalator.simulate()
 
-if __name__ == "__main__()":
+if __name__ == "__main__":
     main()

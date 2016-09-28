@@ -2,14 +2,18 @@ import random
 import string
 
 
-class CommonMethods():
+class CommonMethods(object):
     def __init__(self, cache):
         self.cache = cache
 
-    def get_unused(self, name, resource):
-        if self.cache[name][resource]['used'] is False:
-            self.cache[name][resource]['used'] = True
-            return self.cache[name][resource]
+    def get_unused(self, resource):
+        for key, value in resource:
+            if value is False:
+                resource[key] = True
+                return self.cache[name][resource]
+
+    def get_random(self, resource):
+        pass
 
     _ASCII_LETTERS_AND_DIGITS = string.ascii_letters + string.digits
 
@@ -36,8 +40,3 @@ class CommonMethods():
         return CommonMethods.generate_random_name(length=3, choice=string.ascii_lowercase)+'@'\
                +CommonMethods.generate_random_name(length=3, choice=string.ascii_lowercase)+'.'\
                +CommonMethods.generate_random_name(length=3, choice=string.ascii_lowercase)
-
-
-print CommonMethods.generate_random_name()
-print CommonMethods.generate_random_password()
-print CommonMethods.generate_random_email()

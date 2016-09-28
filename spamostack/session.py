@@ -15,7 +15,7 @@ class Session(CommonMethods, object):
         @type parent: `Client`
         """
 
-        super(Session, self).__init__()
+        super(Session, self).__init__(cache)
         self.user = None
         self.cache = cache
         self.parent = parent

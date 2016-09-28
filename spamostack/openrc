@@ -1,0 +1,4 @@
+export OS_USERNAME='admin'
+export OS_PASSWORD='secret'
+export OS_PROJECT_NAME='admin'
+export OS_AUTH_URL='http://192.168.122.218:5000/v3'

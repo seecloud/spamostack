@@ -15,7 +15,7 @@ def threader(func):
 
 class Simulator(CommonMethods, object):
     def __init__(self, name, pipeline, cache):
-        super(CommonMethods, self).__init__(cache)
+        super(Simulator, self).__init__(cache)
 
         self.name = name
         self.pipeline = pipeline
