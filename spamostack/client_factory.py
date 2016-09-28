@@ -60,7 +60,7 @@ class ClientFactory(object):
 
         if active_session is not None:
             session = active_session
-        else:o7jJKz2PYvx5x6QQ
+        else:
             session = Session(self.cache, self.keeper)
 
         client = Keystone(self.cache, self.keeper, active_session=session)
