@@ -14,5 +14,21 @@
         "update": [120, 2, 1]
       }
     }
+  },
+  "pipe2":
+  {
+    "keystone":
+    {
+      "projects":
+      {
+        "create": [60, 1, 1],
+        "update": [60, 1, 1]
+      },
+      "users":
+      {
+        "create": [60, 2, 1],
+        "update": [120, 2, 1]
+      }
+    }
   }
 }

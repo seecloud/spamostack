@@ -9,8 +9,9 @@ from session import Session
 
 def threader(func):
     def wrapper(self, *args, **kwargs):
-        threading.Thread(target=func, args=(args, kwargs)).start()
+        threading.Thread(target=func, args=(self,)).start()
 
+    return wrapper
 
 class Simulator(object):
     def __init__(self, name, pipeline, cache, keeper):
@@ -22,7 +23,7 @@ class Simulator(object):
         self.client_factory = ClientFactory(self.cache, self.keeper)
         self.session = Session(cache, self.keeper)
 
-    #@threader
+    @threader
     def simulate(self):
         """Simulate an actions"""
 

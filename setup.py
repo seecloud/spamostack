@@ -10,5 +10,4 @@ except ImportError:
 
 setuptools.setup(
     setup_requires=['pbr'],
-    scripts=['bin/spam-o-stack'],
     pbr=True)

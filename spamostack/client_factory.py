@@ -190,7 +190,8 @@ class Keystone(KeystoneClient, object):
         return self._users_update(user=user,
                                   name=name,
                                   domain="default",
-                                  password=self.keeper.generate_random_password(),
+                                  password= \
+                                    self.keeper.generate_random_password(),
                                   email=self.keeper.generate_random_email(),
                                   description="User with name {}".format(name),
                                   enabled=True)
