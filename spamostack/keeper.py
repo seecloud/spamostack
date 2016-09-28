@@ -29,7 +29,7 @@ class Keeper(object):
     def get_random(self, client_name, resource_name):
         return self.get_by_id(client_name, resource_name,
                               random.choice(self.cache[client_name]
-                                            [resource_name].values()))
+                                            [resource_name].keys()))
 
     _ASCII_LETTERS_AND_DIGITS = string.ascii_letters + string.digits
 
@@ -60,4 +60,4 @@ class Keeper(object):
         tld = Keeper.generate_random_name(length=3,
                                           choice=string.ascii_lowercase)
         
-        return "{0}@{1}.{2}".format(user, slt, tld)
+        return "{0}@{1}.{2}".format(user, sld, tld)

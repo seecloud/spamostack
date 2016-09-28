@@ -1,19 +1,11 @@
 from session import Session
 
-import inspect
-
 from keystoneclient.v3.client import Client as KeystoneClient
 from neutronclient.v2_0.client import Client as NeutronClient
 from cinderclient.v3.client import Client as CinderClient
 from novaclient.v2.client import Client as NovaClient
 from glanceclient.v2.client import Client as GlanceClient
 
-
-def get_class(func):
-    for cls in inspect.getmro(func.im_class):
-        if func.__name__ in cls.__dict__:
-            return cls
-    return None
 
 def cache(func):
     def wrapper(self, *args, **kwargs):
@@ -24,8 +16,8 @@ def cache(func):
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
-        self.cache[get_class(func).__name__.lower()][section][processed.id].\
-            setdefault(False)
+        self.cache[self.__class__.__name__.lower()][section]. \
+            setdefault(processed.id, False)
 
         return processed
 
@@ -68,7 +60,7 @@ class ClientFactory(object):
 
         if active_session is not None:
             session = active_session
-        else:
+        else:o7jJKz2PYvx5x6QQ
             session = Session(self.cache, self.keeper)
 
         client = Keystone(self.cache, self.keeper, active_session=session)
@@ -192,7 +184,10 @@ class Keystone(KeystoneClient, object):
     @cache
     def user_update(self):
         name = self.keeper.generate_random_name()
-        return self._users_update(user=self.get_random("keystone", "users"),
+        user = None
+        while user is None or user.name == "admin":
+            user = self.keeper.get_random("keystone", "users")
+        return self._users_update(user=user,
                                   name=name,
                                   domain="default",
                                   password=self.keeper.generate_random_password(),
@@ -215,8 +210,10 @@ class Keystone(KeystoneClient, object):
     @cache
     def project_update(self):
         name = self.keeper.generate_random_name()
-        return self._projects_update(project=self.keeper.get_random("keystone",
-                                                                    "projects"),
+        project = None
+        while project is None or project.name == "admin":
+            project = self.keeper.get_random("keystone", "projects")
+        return self._projects_update(project=project,
                                      name=name,
                                      domain="default",
                                      description="Project {}".format(name),

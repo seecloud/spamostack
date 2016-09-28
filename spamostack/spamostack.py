@@ -1,6 +1,8 @@
 import argparse
 from collections import OrderedDict
 import json
+import logger
+import logging
 
 from session import Session
 from simulator import Simulator
@@ -16,8 +18,12 @@ parser.add_argument('--db', dest='db', default='./db',
                     help='Path to the database directory')
 args = parser.parse_args()
 
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+log.addHandler(logger.SpamStreamHandler())
 
 def main():
+
     if args.pipelines:
         with open(args.pipelines, 'r') as pipes_file:
             pipelines = json.load(pipes_file, object_pairs_hook=OrderedDict)

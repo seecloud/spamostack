@@ -22,7 +22,7 @@ class Simulator(object):
         self.client_factory = ClientFactory(self.cache, self.keeper)
         self.session = Session(cache, self.keeper)
 
-    @threader
+    #@threader
     def simulate(self):
         """Simulate an actions"""
 
@@ -36,8 +36,7 @@ class Simulator(object):
                     self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
-            client = getattr(self.client_factory, pipe_client)(self.cache,
-                                                               active_session=\
+            client = getattr(self.client_factory, pipe_client)(active_session=\
                                                                self.session)
             loop(pipe_client, pipe, client)
 
