@@ -1,5 +1,5 @@
 from session import Session
-from common import CommonMethods
+from keeper import Keeper
 
 import inspect
 
@@ -50,7 +50,7 @@ def uncache(func):
 
 
 class ClientFactory(object):
-    def __init__(self, cache):
+    def __init__(self, cache, keeper=None):
         """
         Create instance of `ClientFactory` class
         @param cahce: Reference to the cache
@@ -58,6 +58,7 @@ class ClientFactory(object):
         """
 
         self.cache = cache
+        self.keeper = keeper
 
     def keystone(self, active_session=None):
         """
@@ -69,10 +70,9 @@ class ClientFactory(object):
         if active_session is not None:
             session = active_session
         else:
-            session = Session(self.cache)
+            session = Session(self.cache, self.keeper)
 
-        client = Keystone(self.cache, session=session)
-        session.parent = client
+        client = Keystone(self.cache, self.keeper, active_session=session)
 
         return client
 
@@ -86,10 +86,9 @@ class ClientFactory(object):
         if active_session is not None:
             session = active_session
         else:
-            session = Session(self.cache)
+            session = Session(self.cache, self.keeper)
 
-        client = Neutron(self.cache, session=session)
-        session.parent = client
+        client = Neutron(self.cache, self.keeper, active_session=session)
 
         return client
 
@@ -101,10 +100,9 @@ class ClientFactory(object):
         if active_session is not None:
             session = active_session
         else:
-            session = Session(self.cache)
+            session = Session(self.cache, self.keeper)
 
-        client = Cinder(self.cache, session=session)
-        session.parent = client
+        client = Cinder(self.cache, self.keeper, active_session=session)
 
         return client
 
@@ -116,10 +114,9 @@ class ClientFactory(object):
         if active_session is not None:
             session = active_session
         else:
-            session = Session(self.cache)
+            session = Session(self.cache, self.keeper)
 
-        client = Nova(self.cache, session=session)
-        session.parent = client
+        client = Nova(self.cache, self.keeper, active_session=session)
 
         return client
 
@@ -131,16 +128,15 @@ class ClientFactory(object):
         if active_session is not None:
             session = active_session
         else:
-            session = Session(self.cache)
+            session = Session(self.cache, self.keeper)
 
-        client = Glance(self.cache, session=session)
-        session.parent = client
+        client = Glance(self.cache, self.keeper, active_session=session)
 
         return client
 
 
-class Keystone(KeystoneClient, CommonMethods, object):
-    def __init__(self, cache, active_session=None):
+class Keystone(KeystoneClient, object):
+    def __init__(self, cache, keeper=None, active_session=None):
         """
         Create `Keystone` class instance.
 
@@ -151,10 +147,11 @@ class Keystone(KeystoneClient, CommonMethods, object):
         """
 
         self.cache = cache
+        self.keeper = keeper
         if active_session:
             self.session = active_session
         else:
-            self.session = Session(self.cache)
+            self.session = Session(self.cache, self.keeper)
 
         super(Keystone, self).__init__(session=self.session.session)
 
@@ -174,13 +171,13 @@ class Keystone(KeystoneClient, CommonMethods, object):
 
     @cache
     def user_create(self):
-        name = self.generate_random_name()
-        password = self.generate_random_password()
-        project = self.get_random(self.cache["keystone"]["projects"])
+        name = self.keeper.generate_random_name()
+        password = self.keeper.generate_random_password()
+        project = self.keeper.get_random("keystone", "projects")
         user = self._users_create(name=name,
                                   domain="default",
                                   password=password,
-                                  email=self.generate_random_email(),
+                                  email=self.keeper.generate_random_email(),
                                   description="User with name {}".format(name),
                                   enabled=True,
                                   default_project=project)
@@ -195,25 +192,22 @@ class Keystone(KeystoneClient, CommonMethods, object):
 
     @cache
     def user_update(self):
-        name = self.generate_random_name()
-        return self._users_update(user=self.get_random(self.cache
-                                                       ["keystone"]
-                                                       ["users"]),
+        name = self.keeper.generate_random_name()
+        return self._users_update(user=self.get_random("keystone", "users"),
                                   name=name,
                                   domain="default",
-                                  password=self.generate_random_password(),
-                                  email=self.generate_random_email(),
+                                  password=self.keeper.generate_random_password(),
+                                  email=self.keeper.generate_random_email(),
                                   description="User with name {}".format(name),
                                   enabled=True)
 
     @uncache
     def user_delete(self):
-        return self._users_delete(self.get_random(self.cache["keystone"]
-                                                  ["users"]))
+        return self._users_delete(self.keeper.get_random("keystone", "users"))
 
     @cache
     def project_create(self):
-        name = self.generate_random_name()
+        name = self.keeper.generate_random_name()
         return self._projects_create(name=name,
                                      domain="default",
                                      description="Project {}".format(name),
@@ -221,10 +215,9 @@ class Keystone(KeystoneClient, CommonMethods, object):
 
     @cache
     def project_update(self):
-        name = self.generate_random_name()
-        return self._projects_update(project=self.get_random(self.cache
-                                                             ["keystone"]
-                                                             ["projects"]),
+        name = self.keeper.generate_random_name()
+        return self._projects_update(project=self.keeper.get_random("keystone",
+                                                                    "projects"),
                                      name=name,
                                      domain="default",
                                      description="Project {}".format(name),
@@ -232,8 +225,8 @@ class Keystone(KeystoneClient, CommonMethods, object):
 
     @uncache
     def project_delete(self):
-        return self._projects_delete(self.get_random(self.cache["keystone"]
-                                                     ["projects"]))
+        return self._projects_delete(self.keeper.get_random("keystone", 
+                                                            "projects"))
 
 
 class Neutron(NeutronClient, object):

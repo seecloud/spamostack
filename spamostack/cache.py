@@ -21,7 +21,6 @@ class Cache(MutableMapping, object):
         self.db = leveldb.LevelDB(path)
         self.cache = nested_dict()
         self.default_init()
-        self.client_factory = ClientFactory(self)
         self.load()
 
     # Concrete methods for MutableMapping
@@ -58,25 +57,20 @@ class Cache(MutableMapping, object):
     def load(self):
         """Load db into cache"""
 
-        def to_objects(cache_elem, client_name, is_key):
+        def to_objects(cache_elem):
             for key, value in cache_elem.iteritems():
                 if isinstance(value, dict):
-                    to_objects(value, client_name)
+                    to_objects(value)
                 else:
-                    if is_key:
+                    try:
                         cache_elem[key] = eval(value)
-                    else:
-                        cache_elem[key] = [getattr(self.client_factory,
-                                                   client_name).get(id=el)
-                                           for el in value]
+                    except NameError as exc:
+                        cache_elem[key] = value
 
         for key, value in self.db.RangeIter():
-            self.cache[key] = value
-            if key == 'created':
-                is_key = True
-            else:
-                is_key = False
-            to_objects(eval(self.cache[key]), key, is_key)
+            self.cache[key] = eval(value)
+            if key == "created":
+                to_objects(self.cache[key])
 
     def update(self):
         """Update existing db with data from cache"""
@@ -90,6 +84,7 @@ class Cache(MutableMapping, object):
 
         batch = leveldb.WriteBatch()
         for key, value in self.cache.iteritems():
-            to_strings(self.cache[key])
-            self.db.Put(key, str(value))
+            if key == "created":
+                to_strings(self.cache[key])
+            self.db.Put(key, str(self.cache[key]))
         self.db.Write(batch, sync=True)

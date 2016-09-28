@@ -1,8 +1,11 @@
 import argparse
 import json
 
+from session import Session
 from simulator import Simulator
 from cache import Cache
+from client_factory import ClientFactory
+from keeper import Keeper
 
 
 parser = argparse.ArgumentParser()
@@ -21,8 +24,12 @@ def main():
     simulalators = []
     cache = Cache(args.db)
 
+    admin_session = Session(cache)
+    admin_factory = ClientFactory(cache)
+    admin_keeper = Keeper(cache, admin_session, admin_factory)
+
     for pipe_name, pipe in pipelines.iteritems():
-        simulalators.append(Simulator(pipe_name, pipe, cache))
+        simulalators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
 
     for simulator in simulalators:
         simulalator.simulate()

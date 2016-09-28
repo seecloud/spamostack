@@ -1,11 +1,9 @@
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 
-from common import CommonMethods
 
-
-class Session(CommonMethods, object):
-    def __init__(self, cache, parent=None):
+class Session(object):
+    def __init__(self, cache, keeper=None):
         """
         Create instance of `Session` class
 
@@ -15,10 +13,9 @@ class Session(CommonMethods, object):
         @type parent: `Client`
         """
 
-        super(Session, self).__init__(cache)
         self.user = None
         self.cache = cache
-        self.parent = parent
+        self.keeper = keeper
         self._session = self.new_session()
 
     @property
@@ -36,16 +33,22 @@ class Session(CommonMethods, object):
     def new_session(self):
         """Initiate new session"""
 
-        self.user = self.get_unused(self.cache["keystone"]["users"])
+        if self.keeper is not None:
+            self.user = self.keeper.get_random("keystone", "users")
+            uname = self.user.name
+        else:
+            uname = "admin"
+
         auth = v3.Password(auth_url=self.cache["auth_url"],
-                           username=self.user.name,
+                           username=uname,
                            password=self.cache["created"]["users"] \
-                                    [self.user.name]["password"],
+                                    [uname]["password"],
                            project_name=self.cache["created"]["users"] \
-                                        [self.user.name]["project_name"],
-                           user_domain_id=self.user.domain_id,
-                           project_domain_id=self.cache["created"]["users"] \
-                                             [self.user.name] \
+                                        [uname]["project_name"],
+                           user_domain_id="default",
+                           project_domain_id=self.cache["created"] \
+                                             ["users"] \
+                                             [uname] \
                                              ["project_domain_id"])
 
         return session.Session(auth=auth)

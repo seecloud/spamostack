@@ -3,7 +3,7 @@ from random import randint
 import threading
 from collections import OrderedDict
 
-from common import CommonMethods
+from keeper import Keeper
 from client_factory import ClientFactory
 from session import Session
 
@@ -13,15 +13,15 @@ def threader(func):
         threading.Thread(target=func, args=(args, kwargs)).start()
 
 
-class Simulator(CommonMethods, object):
-    def __init__(self, name, pipeline, cache):
-        super(Simulator, self).__init__(cache)
+class Simulator(object):
+    def __init__(self, name, pipeline, cache, keeper):
 
         self.name = name
         self.pipeline = pipeline
         self.cache = cache
-        self.client_factory = ClientFactory(cache)
-        self.session = Session(cache)
+        self.keeper = keeper
+        self.client_factory = ClientFactory(self.cache, self.keeper)
+        self.session = Session(cache, self.keeper)
 
     @threader
     def simulate(self):
@@ -37,7 +37,9 @@ class Simulator(CommonMethods, object):
                     self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
-            client = getattr(self.client_factory, pipe_client)(self.session)
+            client = getattr(self.client_factory, pipe_client)(self.cache,
+                                                               active_session=\
+                                                               self.session)
             loop(pipe_client, pipe, client)
 
     def rotate(self, func, period, number, count):
