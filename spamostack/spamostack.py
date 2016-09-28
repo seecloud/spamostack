@@ -12,7 +12,7 @@ from keeper import Keeper
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--pipe', dest='pipelines', required=True,
+parser.add_argument('--pipe', dest='pipelines', default='/etc/spamostack/conf.json',
                     help='Path to the config file with pipes')
 parser.add_argument('--db', dest='db', default='./db',
                     help='Path to the database directory')
@@ -21,6 +21,7 @@ args = parser.parse_args()
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 log.addHandler(logger.SpamStreamHandler())
+
 
 def main():
 
