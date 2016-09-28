@@ -10,4 +10,5 @@ except ImportError:
 
 setuptools.setup(
     setup_requires=['pbr'],
+    data_files=[('/etc/spamostack', ['etc/conf.json'])],
     pbr=True)
