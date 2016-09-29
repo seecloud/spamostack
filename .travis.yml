@@ -3,6 +3,9 @@ language: python
 install:
   - pip install tox
 
+before_install:
+  - pip install coveralls
+
 env:
    - TOXENV=pep8
    - TOXENV=py27
