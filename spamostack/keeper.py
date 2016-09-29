@@ -1,11 +1,25 @@
+#
+# Copyright 2016 Mirantis, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
 import random
 import string
 
 
 class Keeper(object):
     def __init__(self, cache, session, client_factory):
-        """
-        Create an instance of `Keeper` class
+        """Create an instance of `Keeper` class
 
         @param cahce: Reference to the cache
         @type cache: `spamostack.cache.Cache`
@@ -21,15 +35,14 @@ class Keeper(object):
         self.default_init()
 
     def default_init(self):
-        """Initialize the default admin user"""
+        """Initialize the default admin user."""
 
         client = getattr(self.client_factory, "keystone")(self.session)
         user = client.users.find(name="admin")
         self.cache["keystone"]["users"][user.id] = False
 
     def get_by_id(self, client_name, resource_name, id):
-        """
-        Get resource by id
+        """Get resource by id
 
         @param client_name: Name of the client
         @type client_name: `str`
@@ -40,13 +53,12 @@ class Keeper(object):
         """
 
         client = getattr(self.client_factory, client_name)(self.session)
-        resource =  getattr(client, resource_name)
+        resource = getattr(client, resource_name)
 
         return getattr(resource, "get")(id)
 
     def get_unused(self, client_name, resource_name):
-        """
-        Get unused resource
+        """Get unused resource
 
         @param client_name: Name of the client
         @type client_name: `str`
@@ -60,8 +72,7 @@ class Keeper(object):
                 return self.get_by_id(client_name, resource_name, key)
 
     def get_random(self, client_name, resource_name):
-        """
-        Get random resource
+        """Get random resource
 
         @param client_name: Name of the client
         @type client_name: `str`
@@ -78,8 +89,7 @@ class Keeper(object):
     @staticmethod
     def generate_random_name(prefix="", length=16,
                              choice=_ASCII_LETTERS_AND_DIGITS):
-        """
-        Generates pseudo random name
+        """Generates pseudo random name
 
         @param prefix: Custom prefix for random name
         @type prefix: `str`
@@ -95,13 +105,13 @@ class Keeper(object):
 
     @staticmethod
     def generate_random_password():
-        """Generate pseudo random password"""
+        """Generate pseudo random password."""
 
         return Keeper.generate_random_name()
 
     @staticmethod
     def generate_random_email():
-        """Generate pseudo random email"""
+        """Generate pseudo random email."""
 
         user = Keeper.generate_random_name(length=3,
                                            choice=string.ascii_lowercase)
@@ -109,5 +119,5 @@ class Keeper(object):
                                           choice=string.ascii_lowercase)
         tld = Keeper.generate_random_name(length=3,
                                           choice=string.ascii_lowercase)
-        
+
         return "{0}@{1}.{2}".format(user, sld, tld)
