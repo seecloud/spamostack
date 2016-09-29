@@ -5,6 +5,7 @@ install:
 
 env:
    - TOXENV=pep8
+   - TOXENV=py27
 
 script:
   - tox
@@ -14,3 +15,5 @@ matrix:
     - python: "2.7"
       install:
         - pip install tox
+      env: TOXENV=cover
+      after_success: coveralls
