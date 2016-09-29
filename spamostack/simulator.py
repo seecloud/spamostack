@@ -1,7 +1,21 @@
-import time
-from random import randint
+#
+# Copyright 2016 Mirantis, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import random
 import threading
-from collections import OrderedDict
+import time
 
 from client_factory import ClientFactory
 from session import Session
@@ -13,10 +27,10 @@ def threader(func):
 
     return wrapper
 
+
 class Simulator(object):
     def __init__(self, name, pipeline, cache, keeper):
-        """
-        Create an instance of `Simulator` class
+        """Create an instance of `Simulator` class
 
         @param name: Name of the pipeline
         @type name: `str`
@@ -37,7 +51,7 @@ class Simulator(object):
 
     @threader
     def simulate(self):
-        """Simulate an actions"""
+        """Simulate an actions."""
 
         def loop(pipe_client, pipe, parent_obj):
             for key, value in pipe.iteritems():
@@ -49,14 +63,14 @@ class Simulator(object):
                     self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
-            client = getattr(self.client_factory, pipe_client)(active_session=\
-                                                               self.session)
+            client = getattr(self.client_factory,
+                             pipe_client)(active_session=self.session)
             loop(pipe_client, pipe, client)
 
     def rotate(self, func, period, number, count):
-        """
-        Execute method specific number of times in the period and repeat it
-        specific number of times.
+        """Execute method specific number of times
+
+        in the period and repeat it specific number of times.
 
         @param func: Method to be executed
         @type func: `method`
@@ -71,4 +85,4 @@ class Simulator(object):
         for cycle in xrange(count):
             for execute in xrange(number):
                 func()
-                time.sleep(randint(0, period / number))
+                time.sleep(random.randint(0, period / number))

@@ -1,18 +1,29 @@
-from collections import MutableMapping
-from collections import defaultdict
-import leveldb
+#
+# Copyright 2016 Mirantis, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import collections
 import os
 
-from client_factory import ClientFactory
+import leveldb
+
+nested_dict = lambda: collections.defaultdict(nested_dict)
 
 
-nested_dict = lambda: defaultdict(nested_dict)
-
-
-class Cache(MutableMapping, object):
+class Cache(collections.MutableMapping, object):
     def __init__(self, path='./db'):
-        """
-        Create instance of `Cache` class
+        """Create instance of `Cache` class
 
         @param path: Path to the database
         @type path: `str`
@@ -46,20 +57,20 @@ class Cache(MutableMapping, object):
     # end
 
     def default_init(self):
-        "Default initialization for cache"
+        """Default initialization for cache."""
 
         uname = os.environ['OS_USERNAME']
 
-        self.cache["created"]["users"][uname]['password'] = \
-            os.environ['OS_PASSWORD']
-        self.cache["created"]["users"][uname]['project_name'] = \
-            os.environ['OS_PROJECT_NAME']
+        (self.cache["created"]["users"]
+         [uname]['password']) = os.environ['OS_PASSWORD']
+        (self.cache["created"]["users"]
+         [uname]['project_name']) = os.environ['OS_PROJECT_NAME']
         self.cache["auth_url"] = os.environ['OS_AUTH_URL']
         self.cache["created"]["users"][uname]['project_domain_id'] = 'default'
         self.cache["created"]["users"][uname]['user_domain_id'] = 'default'
 
     def load(self):
-        """Load db into cache"""
+        """Load db into cache."""
 
         def to_objects(cache_elem):
             for key, value in cache_elem.iteritems():
@@ -68,7 +79,7 @@ class Cache(MutableMapping, object):
                 else:
                     try:
                         cache_elem[key] = eval(value)
-                    except NameError as exc:
+                    except NameError:
                         cache_elem[key] = value
 
         for key, value in self.db.RangeIter():
@@ -77,7 +88,7 @@ class Cache(MutableMapping, object):
                 to_objects(self.cache[key])
 
     def update(self):
-        """Update existing db with data from cache"""
+        """Update existing db with data from cache."""
 
         def to_strings(cache_elem):
             for key, value in cache_elem.iteritems():
