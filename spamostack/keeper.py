@@ -79,7 +79,7 @@ class Keeper(object):
     def generate_random_name(prefix="", length=16,
                              choice=_ASCII_LETTERS_AND_DIGITS):
         """
-        Generates pseudo random name
+        Generate pseudo random name
 
         @param prefix: Custom prefix for random name
         @type prefix: `str`
