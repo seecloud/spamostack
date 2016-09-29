@@ -5,9 +5,6 @@ install:
 
 env:
    - TOXENV=pep8
-   - TOXENV=py27
-   - TOXENV=py33
-   - TOXENV=py34
 
 script:
   - tox
