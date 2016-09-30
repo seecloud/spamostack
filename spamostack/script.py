@@ -19,6 +19,27 @@ keystone.endpoints.list()[0]
 #cinder = client.Client(session=sess)
 #print(cinder.volumes.list())
 
+from os_client_config import config as cloud_config
+from openstackclient.common import clientmanager
+from argparse import Namespace
+
+opts=Namespace(access_token_endpoint='', auth_type='', auth_url='http://192.168.122.218:5000/v3', cacert='', client_id='', client_secret='', cloud='', debug=False, domain_id='', domain_name='', endpoint='', identity_provider='', insecure=False, os_compute_api_version='2', os_default_domain='default', os_identity_api_version='3', os_image_api_version='2', os_network_api_version='2', os_object_api_version='', os_project_id=None, os_project_name=None, os_volume_api_version='2', password='secret', project_domain_id='default', project_domain_name='', project_id='', project_name='admin', protocol='', region_name='', rest=[], scope='', timing=False, token='', trust_id='', url='', user_domain_id='default', user_domain_name='', user_id='', username='admin', verbose_level=1, verify=False)
+
+cc = cloud_config.OpenStackConfig()
+
+cloud = cc.get_one_cloud(cloud=opts.cloud,argparse=opts,)
+
+api_version={}
+for mod in clientmanager.PLUGIN_MODULES:
+  version_opt = getattr(opts, mod.API_VERSION_OPTION, None)
+  if version_opt:
+    api = mod.API_NAME
+    api_version[api] = version_opt
+
+client_manager = clientmanager.ClientManager(cli_options=cloud,api_version=api_version,)
+client_manager.setup_auth()
+client_manager.auth_ref
+
 '''from cinderclient.v3.client import Client
 Client.volumes.create(self, size, consistencygroup_id, group_id, snapshot_id, source_volid, name, description, volume_type, user_id, project_id, availability_zone, metadata, imageRef, scheduler_hints, source_replica, multiattach)
 Client.volumes.update(self, volume)
