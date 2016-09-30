@@ -21,6 +21,57 @@ import leveldb
 nested_dict = lambda: collections.defaultdict(nested_dict)
 
 
+class LevelCache(collections.MutableMapping, object):
+    def __init__(self, path="./db"):
+        self.path = path
+        self.db = leveldb.LevelDB(self.path)
+        self.data = dict()
+        self.load()
+
+    # Concrete methods for MutableMapping
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.db.Put(key, str(value))
+        self.data[key] = value
+
+    def setdefault(self, key, value=None):
+        self.db.Put(key, str(value))
+        return self.data.setdefault(key, value)
+
+    def __delitem__(self, key):
+        self.db.Delete(key)
+        del self.data[key]
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def __len__(self):
+        return len(self.data)
+    # end
+
+    def keys(self):
+        return self.data.keys()
+
+    def load(self):
+        """Load db into cache."""
+
+        for key, value in self.db.RangeIter():
+            try:
+                self.data[key] = eval(value)
+            except NameError:
+                self.data[key] = value
+
+    def update(self):
+        """Update existing db with data from cache."""
+
+        batch = leveldb.WriteBatch()
+        for key, value in self.data.iteritems():
+            self.db.Put(key, str(self.data[key]))
+        self.db.Write(batch, sync=True)
+
+
 class Cache(collections.MutableMapping, object):
     def __init__(self, path='./db'):
         """Create instance of `Cache` class
@@ -29,21 +80,18 @@ class Cache(collections.MutableMapping, object):
         @type path: `str`
         """
 
-        self.db = leveldb.LevelDB(path)
         self.cache = nested_dict()
+        self.path = path
         self.default_init()
-        self.load()
 
     # Concrete methods for MutableMapping
     def __getitem__(self, key):
         return self.cache[key]
 
     def __setitem__(self, key, value):
-        self.db.Put(key, str(value))
         self.cache[key] = value
 
     def setdefault(self, key, value=None):
-        self.db.Put(key, str(value))
         return self.cache.setdefault(key, value)
 
     def __delitem__(self, key):
@@ -60,6 +108,14 @@ class Cache(collections.MutableMapping, object):
         """Default initialization for cache."""
 
         uname = os.environ['OS_USERNAME']
+        self.cache["created"]["users"][uname]) = LevelCache(
+            os.path.join(self.path, "created","users", uname))
+
+        self.cache["created"]["users"][uname]['password'] = \
+            os.environ['OS_PASSWORD']
+
+        (self.cache["created"]["users"]
+         [uname]['password']) = os.environ['OS_PASSWORD']
 
         (self.cache["created"]["users"]
          [uname]['password']) = os.environ['OS_PASSWORD']
@@ -69,37 +125,11 @@ class Cache(collections.MutableMapping, object):
         self.cache["created"]["users"][uname]['project_domain_id'] = 'default'
         self.cache["created"]["users"][uname]['user_domain_id'] = 'default'
 
-    def load(self):
-        """Load db into cache."""
+        self.cache["identity"]["projects"] = LevelCache(
+            os.path.join(self.path, "identity", "projects"))
 
-        def to_objects(cache_elem):
-            for key, value in cache_elem.iteritems():
-                if isinstance(value, dict):
-                    to_objects(value)
-                else:
-                    try:
-                        cache_elem[key] = eval(value)
-                    except NameError:
-                        cache_elem[key] = value
+        self.cache["identity"]["users"] = LevelCache(
+            os.path.join(self.path, "identity", "users"))
 
-        for key, value in self.db.RangeIter():
-            self.cache[key] = eval(value)
-            if key == "created":
-                to_objects(self.cache[key])
-
-    def update(self):
-        """Update existing db with data from cache."""
-
-        def to_strings(cache_elem):
-            for key, value in cache_elem.iteritems():
-                if isinstance(value, dict):
-                    to_strings(value)
-                else:
-                    cache_elem[key] = str(value)
-
-        batch = leveldb.WriteBatch()
-        for key, value in self.cache.iteritems():
-            if key == "created":
-                to_strings(self.cache[key])
-            self.db.Put(key, str(self.cache[key]))
-        self.db.Write(batch, sync=True)
+        self.cache["volume"]["volumes"] = LevelCache(
+            os.path.join(self.path, "volume", "volumes"))
