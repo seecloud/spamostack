@@ -108,11 +108,11 @@ class Cache(collections.MutableMapping, object):
         """Default initialization for cache."""
 
         uname = os.environ['OS_USERNAME']
-        self.cache["created"]["users"][uname]) = LevelCache(
-            os.path.join(self.path, "created","users", uname))
+        self.cache["created"]["users"][uname] = LevelCache(
+            os.path.join(self.path, "created", "users", uname))
 
-        self.cache["created"]["users"][uname]['password'] = \
-            os.environ['OS_PASSWORD']
+        (self.cache["created"]["users"]
+         [uname]['password']) = os.environ['OS_PASSWORD']
 
         (self.cache["created"]["users"]
          [uname]['password']) = os.environ['OS_PASSWORD']
