@@ -53,16 +53,16 @@ Example:
           "create": [60, 2, 1],
           "update": [120, 2, 2]
          }
-        }
+       }
      }
    }
 
 That means, that spamostack should:
 
-  - Create 1 project in 60 seconds and do it once
-  - Update 1 project in 60 seconds and do it once
-  - Create 2 users in 60 seconds and do it once
-  - Update 2 users in 120 seconds and do it twice
+- Create 1 project in 60 seconds and do it once
+- Update 1 project in 60 seconds and do it once
+- Create 2 users in 60 seconds and do it once
+- Update 2 users in 120 seconds and do it twice
 
 Using spamostack
 ----------------
