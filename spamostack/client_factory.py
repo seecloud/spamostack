@@ -83,12 +83,12 @@ class ClientFactory(object):
         opts.cloud = ""
         cc = cloud_config.OpenStackConfig()
         cloud = cc.get_one_cloud(cloud=opts.cloud, argparse=opts)
-        api_version={}
+        api_version = {}
         for mod in clientmanager.PLUGIN_MODULES:
-          version_opt = getattr(opts, mod.API_VERSION_OPTION, None)
-          if version_opt:
-            api = mod.API_NAME
-            api_version[api] = version_opt
+            version_opt = getattr(opts, mod.API_VERSION_OPTION, None)
+            if version_opt:
+                api = mod.API_NAME
+                api_version[api] = version_opt
 
         self.client_manager = clientmanager.ClientManager(
             cli_options=cloud, api_version=api_version)
@@ -96,34 +96,35 @@ class ClientFactory(object):
         self.client_manager.auth_ref
 
     def keystone(self):
-        """Create Keystone client"""
+        """Create Keystone client."""
 
         return Keystone(self.cache, self.client_manager.identity, self.faker,
                         self.keeper)
 
     def neutron(self):
-        """Create Neutron client"""
+        """Create Neutron client."""
 
         return Neutron(self.cache, self.client_manager.network, self.faker,
                        self.keeper)
 
     def cinder(self):
-        """Create Cinder client"""
+        """Create Cinder client."""
 
         return Cinder(self.cache, self.client_manager.volume, self.faker,
                       self.keeper)
 
     def nova(self):
-        """Create Nova client"""
+        """Create Nova client."""
 
         return Nova(self.cache, self.client_manager.compute, self.faker,
                     self.keeper)
 
     def glance(self):
-        """Create Glance client"""
+        """Create Glance client."""
 
         return Glance(self.cache, self.client_manager.image, self.faker,
                       self.keeper)
+
 
 class Keystone(object):
     def __init__(self, cache, client, faker=None, keeper=None):
@@ -174,9 +175,7 @@ class Keystone(object):
                                         enabled=True,
                                         default_project=project)
 
-        self.roles.grant(self.roles.find(name="admin"), user        self.cache["users"][name][] = 
-        self.cache["users"][name][] = 
-        self.cache["users"][name][] = , project=project)
+        self.roles.grant(self.roles.find(name="admin"), user, project=project)
         self.cache["users"][name] = {"password": password,
                                      "project_name": project.name,
                                      "project_domain_id": project.domain_id}

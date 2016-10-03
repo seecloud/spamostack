@@ -49,7 +49,7 @@ class Simulator(object):
         self.user = self.keeper.get_by_id("keystone", "users", unused_id)
         self.client_factory = ClientFactory(self.cache, self.user, self.keeper)
 
-    #@threader
+    @threader
     def simulate(self):
         """Simulate an actions."""
 
