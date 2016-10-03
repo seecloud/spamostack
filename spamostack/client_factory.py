@@ -13,13 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import cinderclient.v3.client as cinder_client
+import argparse
+
 import faker
-import glanceclient.v2.client as glance_client
-import keystoneclient.v3.client as keystone_client
-import neutronclient.v2_0.client as neutron_client
-import novaclient.v2.client as nova_client
-from session import Session
+from openstackclient.common import clientmanager
+from os_client_config import config as cloud_config
 
 
 def cache(func):
@@ -56,103 +54,78 @@ def uncache(func):
 
 
 class ClientFactory(object):
-    def __init__(self, cache, keeper=None):
+    def __init__(self, cache, user, keeper=None):
         """Create instance of `ClientFactory` class
 
         @param cahce: Reference to the cache
         @type cache: spamostack.cache.Cache
+        @param user: User for client factory instance
+        @type user: `dict` or `User`
         @param keeper: Reference to the keeper
         @type keeper: `keeper.Keeper`
         """
 
         self.cache = cache
         self.keeper = keeper
-        self.fake = faker.Factory.create('en_US')
+        self.faker = faker.Factory.create('en_US')
 
-    def keystone(self, active_session=None):
-        """Create Keystone client
-
-        @param active_session: Active session instead of creating new one
-        @type active_session: `session.Session`
-        """
-
-        if active_session is not None:
-            session = active_session
+        # Initialization of client manager
+        if isinstance(user, dict):
+            user_copy = user.copy()
+            user_copy.update(self.cache["api"])
+            opts = argparse.Namespace(**user_copy)
         else:
-            session = Session(self.cache, self.keeper)
+            user_copy = self.cache["users"][user.name].copy()
+            user_copy.update(self.cache["api"])
+            opts = argparse.Namespace(**user_copy)
+        opts.cloud = ""
+        cc = cloud_config.OpenStackConfig()
+        cloud = cc.get_one_cloud(cloud=opts.cloud, argparse=opts)
+        api_version = {}
+        for mod in clientmanager.PLUGIN_MODULES:
+            version_opt = getattr(opts, mod.API_VERSION_OPTION, None)
+            if version_opt:
+                api = mod.API_NAME
+                api_version[api] = version_opt
 
-        client = Keystone(self.cache, keeper=self.keeper,
-                          fake=self.fake, active_session=session)
+        self.client_manager = clientmanager.ClientManager(
+            cli_options=cloud, api_version=api_version)
+        self.client_manager.setup_auth()
+        self.client_manager.auth_ref
 
-        return client
+    def keystone(self):
+        """Create Keystone client."""
 
-    def neutron(self, active_session=None):
-        """Create Neutron client
+        return Keystone(self.cache, self.client_manager.identity, self.faker,
+                        self.keeper)
 
-        @param active_session: Active session instead of creating new one
-        @type active_session: `session.Session`
-        """
+    def neutron(self):
+        """Create Neutron client."""
 
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache, self.keeper)
+        return Neutron(self.cache, self.client_manager.network, self.faker,
+                       self.keeper)
 
-        client = Neutron(self.cache, self.keeper, active_session=session)
+    def cinder(self):
+        """Create Cinder client."""
 
-        return client
+        return Cinder(self.cache, self.client_manager.volume, self.faker,
+                      self.keeper)
 
-    def cinder(self, active_session=None):
-        """Create Cinder client
+    def nova(self):
+        """Create Nova client."""
 
-        @param active_session: Active session instead of creating new one
-        @type active_session: `session.Session`
-        """
+        return Nova(self.cache, self.client_manager.compute, self.faker,
+                    self.keeper)
 
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache, self.keeper)
+    def glance(self):
+        """Create Glance client."""
 
-        client = Cinder(self.cache, self.keeper, active_session=session)
-
-        return client
-
-    def nova(self, active_session=None):
-        """Create Nova client
-
-        @param active_session: Active session instead of creating new one
-        @type active_session: `session.Session`
-        """
-
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache, self.keeper)
-
-        client = Nova(self.cache, self.keeper, active_session=session)
-
-        return client
-
-    def glance(self, active_session=None):
-        """Create Glance client
-
-        @param active_session: Active session instead of creating new one
-        @type active_session: `session.Session`
-        """
-
-        if active_session is not None:
-            session = active_session
-        else:
-            session = Session(self.cache, self.keeper)
-
-        client = Glance(self.cache, self.keeper, active_session=session)
-
-        return client
+        return Glance(self.cache, self.client_manager.image, self.faker,
+                      self.keeper)
 
 
-class Keystone(keystone_client.Client, object):
-    def __init__(self, cache, fake=None, keeper=None, active_session=None):
+class Keystone(object):
+    def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Keystone` class instance.
 
         @param cache: Cache
@@ -164,112 +137,119 @@ class Keystone(keystone_client.Client, object):
         """
 
         self.cache = cache
-        self.fake = fake
+        self.client = client
+        self.faker = faker
         self.keeper = keeper
-        if active_session:
-            self.session = active_session
-        else:
-            self.session = Session(self.cache, self.keeper)
 
-        super(Keystone, self).__init__(session=self.session.session)
+        self.users = lambda: None
+        self.projects = lambda: None
+        self.roles = self.client.roles
 
-        self._users_create = self.users.create
+        self.users.get = self.client.users.get
+        self.users.find = self.client.users.find
         self.users.create = self.user_create
-        self._users_update = self.users.update
         self.users.update = self.user_update
-        self._users_delete = self.users.delete
         self.users.delete = self.user_delete
 
-        self._projects_create = self.projects.create
+        self.projects.get = self.client.projects.get
+        self.projects.fidn = self.client.projects.find
         self.projects.create = self.project_create
-        self._projects_update = self.projects.update
         self.projects.update = self.project_update
-        self._projects_delete = self.projects.delete
         self.projects.delete = self.project_delete
 
     @cache
     def user_create(self):
-        name = self.fake.name()
-        password = self.fake.password()
-        email = self.fake.safe_email()
-        project = self.keeper.get_random("keystone", "projects")
-        user = self._users_create(name=name,
-                                  domain="default",
-                                  password=password,
-                                  email=email,
-                                  description="User with name {}".format(name),
-                                  enabled=True,
-                                  default_project=project)
+        name = self.faker.name()
+        password = self.faker.password()
+        email = self.faker.safe_email()
+        project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
+        project = self.keeper.get_by_id("keystone", "projects", project_id)
+        user = self.client.users.create(name=name,
+                                        domain="default",
+                                        password=password,
+                                        email=email,
+                                        description=("User with name {}".
+                                                     format(name)),
+                                        enabled=True,
+                                        default_project=project)
 
         self.roles.grant(self.roles.find(name="admin"), user, project=project)
-        self.cache["created"]["users"][name]["password"] = password
-        self.cache["created"]["users"][name]["project_name"] = project.name
-        (self.cache["created"]["users"][name]
-         ["project_domain_id"]) = project.domain_id
+        self.cache["users"][name] = {"password": password,
+                                     "project_name": project.name,
+                                     "project_domain_id": project.domain_id}
 
         return user
 
     @cache
     def user_update(self):
-        name = self.fake.name()
-        password = self.fake.password()
-        email = self.fake.safe_email()
+        name = self.faker.name()
+        password = self.faker.password()
+        email = self.faker.safe_email()
         user = None
         while user is None or user.name == "admin":
-            user = self.keeper.get_random("keystone", "users")
-        return self._users_update(user=user,
-                                  name=name,
-                                  domain="default",
-                                  password=password,
-                                  email=email,
-                                  description="User with name {}".format(name),
-                                  enabled=True)
+            user_id = self.keeper.get_random(self.cache["keystone"]["users"])
+            user = self.keeper.get_by_id("keystone", "users", user_id)
+        return self.client.users.update(user=user,
+                                        name=name,
+                                        domain="default",
+                                        password=password,
+                                        email=email,
+                                        description=("User with name {}".
+                                                     format(name)),
+                                        enabled=True)
 
     @uncache
     def user_delete(self):
-        return self._users_delete(self.keeper.get_random("keystone", "users"))
+        user_id = self.keeper.get_random(self.cache["keystone"]["users"])
+        return self.client.users.delete(
+            self.keeper.get_by_id("keystone", "users", user_id))
 
     @cache
     def project_create(self):
-        name = self.fake.word()
-        return self._projects_create(name=name,
-                                     domain="default",
-                                     description="Project {}".format(name),
-                                     enabled=True)
+        name = self.faker.word()
+        return self.client.projects.create(name=name,
+                                           domain="default",
+                                           description=("Project {}".
+                                                        format(name)),
+                                           enabled=True)
 
     @cache
     def project_update(self):
-        name = self.fake.word()
+        name = self.faker.word()
         project = None
         while project is None or project.name == "admin":
-            project = self.keeper.get_random("keystone", "projects")
-        return self._projects_update(project=project,
-                                     name=name,
-                                     domain="default",
-                                     description="Project {}".format(name),
-                                     enabled=True)
+            project_id = self.keeper.get_random(
+                self.cache["keystone"]["projects"])
+            project = self.keeper.get_by_id("keystone", "projects", project_id)
+        return self.client.projects.update(project=project,
+                                           name=name,
+                                           domain="default",
+                                           description=("Project {}".
+                                                        format(name)),
+                                           enabled=True)
 
     @uncache
     def project_delete(self):
-        return self._projects_delete(self.keeper.get_random("keystone",
-                                                            "projects"))
+        project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
+        return self.client.projects.delete(
+            self.keeper.get_by_id("keystone", "projects", project_id))
 
 
-class Neutron(neutron_client.Client, object):
+class Neutron(object):
     def __init__(self, cache):
         pass
 
 
-class Cinder(cinder_client.Client, object):
+class Cinder(object):
     def __init__(self, cache):
         pass
 
 
-class Nova(nova_client.Client, object):
+class Nova(object):
     def __init__(self, cache):
         pass
 
 
-class Glance(glance_client.Client, object):
+class Glance(object):
     def __init__(self, cache):
         pass
