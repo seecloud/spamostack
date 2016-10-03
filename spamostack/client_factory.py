@@ -13,13 +13,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import argparse
+
 import faker
 
-import argparse
 from openstackclient.common import clientmanager
 from os_client_config import config as cloud_config
-
-import copy
 
 
 def cache(func):
