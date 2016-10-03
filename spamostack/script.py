@@ -1,8 +1,7 @@
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
-#from neutronclient.v2_0 import client
 from keystoneclient.v3 import client
-#from cinderclient.v3 import client
+
 
 auth = v3.Password(auth_url="http://192.168.122.218:5000/v3", username="admin",
                    password="secret", project_name="admin",
@@ -10,7 +9,10 @@ auth = v3.Password(auth_url="http://192.168.122.218:5000/v3", username="admin",
 
 sess = session.Session(auth=auth)
 keystone = client.Client(session=sess)
-keystone.endpoints.list()[0]
+
+#from neutronclient.v2_0 import client
+#from cinderclient.v3 import client
+#keystone.endpoints.list()[0]
 #print(keystone.projects.list())
 
 #neutron = client.Client(session=sess)
@@ -39,6 +41,148 @@ for mod in clientmanager.PLUGIN_MODULES:
 client_manager = clientmanager.ClientManager(cli_options=cloud,api_version=api_version,)
 client_manager.setup_auth()
 client_manager.auth_ref
+
+
+'''
+client_manager.identity.users.get(self, user)
+client_manager.identity.users.list(self, project=None, domain=None, group=None, default_project=None, **kwargs)
+client_manager.identity.users.create(self, name, domain=None, project=None, password=None, email=None, description=None, enabled=True, default_project=None, **kwargs)
+client_manager.identity.users.update(self, user, name=None, domain=None, project=None, password=None, email=None, description=None, enabled=None, default_project=None, **kwargs)
+client_manager.identity.users.delete(self, user)
+
+client_manager.identity.projects.get(self, project, subtree_as_list=False, parents_as_list=False, subtree_as_ids=False, parents_as_ids=False)
+client_manager.identity.projects.list(self, domain=None, user=None, **kwargs)
+client_manager.identity.projects.create(self, name, domain, description=None, enabled=True, parent=None, **kwargs)
+client_manager.identity.projects.update(self, project, name=None, domain=None, description=None, enabled=None, **kwargs)
+client_manager.identity.projects.delete(self, project)
+'''
+
+
+'''
+client_manager.volume.volumes.get(self, volume_id)
+client_manager.volume.volumes.list(self, detailed=True, search_opts=None,
+                                   marker=None, limit=None, sort_key=None,
+                                   sort_dir=None, sort=None)
+client_manager.volume.volumes.create(self, size, consistencygroup_id=None,
+               group_id=None, snapshot_id=None,
+               source_volid=None, name=None, description=None,
+               volume_type=None, user_id=None,
+               project_id=None, availability_zone=None,
+               metadata=None, imageRef=None, scheduler_hints=None,
+               source_replica=None, multiattach=False):
+client_manager.volume.volumes.update(self, volume, **kwargs)
+client_manager.volume.volumes.delete(self, volume, cascade=False)
+client_manager.volume.volumes.attach(self, volume, instance_uuid, mountpoint, mode='rw',
+               host_name=None)
+client_manager.volume.volumes.detach(self, volume, attachment_uuid=None)
+'''
+
+
+'''
+client_manager.image.images.get(self, image_id)
+client_manager.image.images.list(self, **kwargs)
+client_manager.image.images.create(self, **kwargs)
+client_manager.image.images.update(self, image_id, remove_props=None, **kwargs)
+client_manager.image.images.delete(self, image_id)
+client_manager.image.images.upload(self, image_id, image_data, image_size=None)
+client_manager.image.images.deactivate(self, image_id)
+client_manager.image.images.reactivate(self, image_id)
+'''
+
+
+'''
+client_manager.compute.flavors.get(self, flavor)
+client_manager.compute.flavors.list(self, detailed=True, is_public=True, marker=None, limit=None,
+             sort_key=None, sort_dir=None)
+client_manager.compute.flavors.create(self, name, ram, vcpus, disk, flavorid="auto",
+               ephemeral=0, swap=0, rxtx_factor=1.0, is_public=True)
+client_manager.compute.flavors.delete(self, flavor)
+
+client_manager.compute.server.get(self, server)
+client_manager.compute.server.list(self, detailed=True, search_opts=None, marker=None, limit=None,
+             sort_keys=None, sort_dirs=None)
+client_manager.compute.server.start(self, server)
+client_manager.compute.server.pause(self, server)
+client_manager.compute.server.unpause(self, server)
+client_manager.compute.server.lock(self, server)
+client_manager.compute.server.unlock(self, server)
+client_manager.compute.server.suspend(self, server)
+client_manager.compute.server.resume(self, server)
+client_manager.compute.server.rescue(self, server, password=None, image=None)
+client_manager.compute.server.unrescue(self, server)
+client_manager.compute.server.ips(self, server)
+client_manager.compute.server.create(self, name, image, flavor, meta=None, files=None,
+               reservation_id=None, min_count=None,
+               max_count=None, security_groups=None, userdata=None,
+               key_name=None, availability_zone=None,
+               block_device_mapping=None, block_device_mapping_v2=None,
+               nics=None, scheduler_hints=None,
+               config_drive=None, disk_config=None, admin_pass=None,
+               access_ip_v4=None, access_ip_v6=None, **kwargs)
+client_manager.compute.server.update(self, server, name=None, description=None)
+client_manager.compute.server.delete(self, server)
+client_manager.compute.server.reboot(self, server, reboot_type=REBOOT_SOFT)
+client_manager.compute.server.rebuild(self, server, image, password=None, disk_config=None,
+                preserve_ephemeral=False, name=None, meta=None, files=None,
+                **kwargs)
+client_manager.compute.server.resize(self, server, flavor, disk_config=None, **kwargs)
+client_manager.compute.server.confirm_resize(self, server)
+client_manager.compute.server.revert_resize(self, server)
+client_manager.compute.server.migrate(self, server)
+client_manager.compute.server.add_fixed_ip(self, server, network_id)
+client_manager.compute.server.remove_fixed_ip(self, server, address)
+client_manager.compute.server.add_floating_ip(self, server, address, fixed_address=None)
+client_manager.compute.server.remove_floating_ip(self, server, address)
+client_manager.compute.server.reset_network(self, server)
+client_manager.compute.server.reset_state(self, server, state='error')
+client_manager.compute.server.live_migrate(self, server, host, block_migration, force=None)
+client_manager.compute.server.backup(self, server, backup_name, backup_type, rotation)
+'''
+
+
+'''
+client_manager.network.get_network(self, network)
+client_manager.network.networks(self, **query)
+client_manager.network.find_network(self, name_or_id, ignore_missing=True)
+client_manager.network.create_network(self, **attrs)
+client_manager.network.update_network(self, network, **attrs)
+client_manager.network.delete_network(self, network, ignore_missing=True)
+
+client_manager.network.get_router(self, router)
+client_manager.network.find_router(self, name_or_id, ignore_missing=True)
+client_manager.network.routers(self, **query)
+client_manager.network.create_router(self, **attrs)
+client_manager.network.update_router(self, router, **attrs)
+client_manager.network.delete_router(self, router, ignore_missing=True)
+client_manager.network.add_interface_to_router(self, router, subnet_id=None, port_id=None)
+client_manager.network.remove_interface_from_router(self, router, subnet_id=None,
+                                     port_id=None)
+client_manager.network.add_gateway_to_router(self, router, **body)
+client_manager.network.remove_gateway_from_router(self, router, **body)
+
+client_manager.network.get_security_group(self, security_group)
+client_manager.network.security_groups(self, **query)
+client_manager.network.find_security_group(self, name_or_id, ignore_missing=True)
+client_manager.network.create_security_group(self, **attrs)
+client_manager.network.update_security_group(self, security_group, **attrs)
+client_manager.network.delete_security_group(self, security_group, ignore_missing=True)
+client_manager.network.security_group_open_port(self, sgid, port, protocol='tcp')
+client_manager.network.security_group_allow_ping(self, sgid)
+
+client_manager.network.get_port(self, port)
+client_manager.network.ports(self, **query)
+client_manager.network.find_port(self, name_or_id, ignore_missing=True)
+client_manager.network.create_port(self, **attrs)
+client_manager.network.update_port(self, port, **attrs)
+client_manager.network.delete_port(self, port, ignore_missing=True)
+client_manager.network.add_ip_to_port(self, port, ip)
+client_manager.network.remove_ip_from_port(self, ip)
+'''
+
+
+# Old fashion
+
+
 
 '''from cinderclient.v3.client import Client
 Client.volumes.create(self, size, consistencygroup_id, group_id, snapshot_id, source_volid, name, description, volume_type, user_id, project_id, availability_zone, metadata, imageRef, scheduler_hints, source_replica, multiattach)
