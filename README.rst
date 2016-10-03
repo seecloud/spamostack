@@ -30,14 +30,33 @@ Configuring spamostack
 ----------------------
 
 Please, configure your settings by changing config file in etc/ folder.
-File ``openrc`` needed for connecting to your cloud, and file ``conf.json`` needed for configuring pipelines
+File ``openrc`` is needed for connecting to your cloud, and file ``conf.json`` is needed for configuring pipelines
 
 
 Configuring keystone
 --------------------
 
 Example:
-``{"pipe1":{"keystone":{"projects":{"create": [60, 1, 1],"update": [60, 1, 1]},"users":{"create": [60, 2, 1],"update": [120, 2, 2]}}}}``
+
+.. code-block:: javascript
+
+   {"pipe1":
+     {"keystone":
+       {
+         "projects":
+         {
+          "create": [60, 1, 1],
+          "update": [60, 1, 1]
+         },
+         "users":
+         {
+          "create": [60, 2, 1],
+          "update": [120, 2, 2]
+         }
+        }
+     }
+   }
+
 That means, that spamostack should:
 
   - Create 1 project in 60 seconds and do it once
