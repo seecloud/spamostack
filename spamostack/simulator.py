@@ -18,7 +18,6 @@ import threading
 import time
 
 from client_factory import ClientFactory
-from session import Session
 
 
 def threader(func):
@@ -46,10 +45,11 @@ class Simulator(object):
         self.pipeline = pipeline
         self.cache = cache
         self.keeper = keeper
-        self.client_factory = ClientFactory(self.cache, self.keeper)
-        self.session = Session(cache, self.keeper)
+        unused_id = self.keeper.get_random(self.cache["keystone"]["users"])
+        self.user = self.keeper.get_by_id("keystone", "users", unused_id)
+        self.client_factory = ClientFactory(self.cache, self.user, self.keeper)
 
-    @threader
+    #@threader
     def simulate(self):
         """Simulate an actions."""
 
@@ -63,8 +63,7 @@ class Simulator(object):
                     self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
-            client = getattr(self.client_factory,
-                             pipe_client)(active_session=self.session)
+            client = getattr(self.client_factory, pipe_client)()
             loop(pipe_client, pipe, client)
 
     def rotate(self, func, period, number, count):

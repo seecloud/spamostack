@@ -22,7 +22,6 @@ from cache import Cache
 from client_factory import ClientFactory
 from keeper import Keeper
 import logger
-from session import Session
 from simulator import Simulator
 
 
@@ -48,9 +47,8 @@ def main():
     simulators = []
     cache = Cache(args.db)
 
-    admin_session = Session(cache)
-    admin_factory = ClientFactory(cache)
-    admin_keeper = Keeper(cache, admin_session, admin_factory)
+    admin_factory = ClientFactory(cache, cache["users"]["admin"])
+    admin_keeper = Keeper(cache, admin_factory)
 
     for pipe_name, pipe in pipelines.iteritems():
         simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))

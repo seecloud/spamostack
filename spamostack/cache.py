@@ -37,7 +37,10 @@ class LevelCache(collections.MutableMapping, object):
         self.data[key] = value
 
     def setdefault(self, key, value=None):
-        self.db.Put(key, str(value))
+        try:
+            self.db.Get(key)
+        except KeyError:
+            self.db.Put(key, str(value))
         return self.data.setdefault(key, value)
 
     def __delitem__(self, key):
@@ -107,29 +110,48 @@ class Cache(collections.MutableMapping, object):
     def default_init(self):
         """Default initialization for cache."""
 
+        if not os.path.exists(self.path):
+            os.mkdir(self.path)
         uname = os.environ['OS_USERNAME']
-        self.cache["created"]["users"][uname] = LevelCache(
-            os.path.join(self.path, "created", "users", uname))
+        self.cache["users"] = LevelCache(
+            os.path.join(self.path, "users"))
 
-        (self.cache["created"]["users"]
-         [uname]['password']) = os.environ['OS_PASSWORD']
+        admin_user = {"os_username":
+                      os.environ['OS_USERNAME'],
+                      "os_password":
+                      os.environ['OS_PASSWORD'],
+                      "os_project_name":
+                      os.environ['OS_PROJECT_NAME'],
+                      "os_auth_url":
+                      os.environ['OS_AUTH_URL'],
+                      "os_project_domain_id":
+                      os.environ['OS_PROJECT_DOMAIN_ID'],
+                      "os_user_domain_id":
+                      os.environ['OS_USER_DOMAIN_ID']}
+        self.cache["users"][uname] = admin_user
 
-        (self.cache["created"]["users"]
-         [uname]['password']) = os.environ['OS_PASSWORD']
+        self.cache["api"] = {"os_compute_api_version":
+                             os.environ['OS_COMPUTE_API_VERSION'],
+                             "os_identity_api_version":
+                             os.environ['OS_IDENTITY_API_VERSION'],
+                             "os_image_api_version":
+                             os.environ['OS_IMAGE_API_VERSION'],
+                             "os_network_api_version":
+                             os.environ['OS_NETWORK_API_VERSION'],
+                             "os_volume_api_version":
+                             os.environ['OS_VOLUME_API_VERSION']}
 
-        (self.cache["created"]["users"]
-         [uname]['password']) = os.environ['OS_PASSWORD']
-        (self.cache["created"]["users"]
-         [uname]['project_name']) = os.environ['OS_PROJECT_NAME']
-        self.cache["auth_url"] = os.environ['OS_AUTH_URL']
-        self.cache["created"]["users"][uname]['project_domain_id'] = 'default'
-        self.cache["created"]["users"][uname]['user_domain_id'] = 'default'
+        keystone_path = os.path.join(self.path, "keystone")
+        if not os.path.exists(keystone_path):
+            os.mkdir(keystone_path)
+        self.cache["keystone"]["projects"] = LevelCache(
+            os.path.join(keystone_path, "projects"))
 
-        self.cache["identity"]["projects"] = LevelCache(
-            os.path.join(self.path, "identity", "projects"))
+        self.cache["keystone"]["users"] = LevelCache(
+            os.path.join(self.path, "keystone", "users"))
 
-        self.cache["identity"]["users"] = LevelCache(
-            os.path.join(self.path, "identity", "users"))
-
-        self.cache["volume"]["volumes"] = LevelCache(
-            os.path.join(self.path, "volume", "volumes"))
+        cinder_path = os.path.join(self.path, "cinder")
+        if not os.path.exists(cinder_path):
+            os.mkdir(cinder_path)
+        self.cache["cinder"]["volumes"] = LevelCache(
+            os.path.join(cinder_path, "volumes"))
