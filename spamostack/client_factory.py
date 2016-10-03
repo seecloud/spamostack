@@ -14,6 +14,7 @@
 # under the License.
 
 import cinderclient.v3.client as cinder_client
+import faker
 import glanceclient.v2.client as glance_client
 import keystoneclient.v3.client as keystone_client
 import neutronclient.v2_0.client as neutron_client
@@ -66,6 +67,7 @@ class ClientFactory(object):
 
         self.cache = cache
         self.keeper = keeper
+        self.fake = faker.Factory.create('en_US')
 
     def keystone(self, active_session=None):
         """Create Keystone client
@@ -79,7 +81,8 @@ class ClientFactory(object):
         else:
             session = Session(self.cache, self.keeper)
 
-        client = Keystone(self.cache, self.keeper, active_session=session)
+        client = Keystone(self.cache, keeper=self.keeper,
+                          fake=self.fake, active_session=session)
 
         return client
 
@@ -149,7 +152,7 @@ class ClientFactory(object):
 
 
 class Keystone(keystone_client.Client, object):
-    def __init__(self, cache, keeper=None, active_session=None):
+    def __init__(self, cache, fake=None, keeper=None, active_session=None):
         """Create `Keystone` class instance.
 
         @param cache: Cache
@@ -161,6 +164,7 @@ class Keystone(keystone_client.Client, object):
         """
 
         self.cache = cache
+        self.fake = fake
         self.keeper = keeper
         if active_session:
             self.session = active_session
@@ -185,13 +189,14 @@ class Keystone(keystone_client.Client, object):
 
     @cache
     def user_create(self):
-        name = self.keeper.generate_random_name()
-        password = self.keeper.generate_random_password()
+        name = self.fake.name()
+        password = self.fake.password()
+        email = self.fake.safe_email()
         project = self.keeper.get_random("keystone", "projects")
         user = self._users_create(name=name,
                                   domain="default",
                                   password=password,
-                                  email=self.keeper.generate_random_email(),
+                                  email=email,
                                   description="User with name {}".format(name),
                                   enabled=True,
                                   default_project=project)
@@ -206,16 +211,17 @@ class Keystone(keystone_client.Client, object):
 
     @cache
     def user_update(self):
-        name = self.keeper.generate_random_name()
+        name = self.fake.name()
+        password = self.fake.password()
+        email = self.fake.safe_email()
         user = None
         while user is None or user.name == "admin":
             user = self.keeper.get_random("keystone", "users")
         return self._users_update(user=user,
                                   name=name,
                                   domain="default",
-                                  password=(self.keeper.
-                                            generate_random_password()),
-                                  email=self.keeper.generate_random_email(),
+                                  password=password,
+                                  email=email,
                                   description="User with name {}".format(name),
                                   enabled=True)
 
@@ -225,7 +231,7 @@ class Keystone(keystone_client.Client, object):
 
     @cache
     def project_create(self):
-        name = self.keeper.generate_random_name()
+        name = self.fake.word()
         return self._projects_create(name=name,
                                      domain="default",
                                      description="Project {}".format(name),
@@ -233,7 +239,7 @@ class Keystone(keystone_client.Client, object):
 
     @cache
     def project_update(self):
-        name = self.keeper.generate_random_name()
+        name = self.fake.word()
         project = None
         while project is None or project.name == "admin":
             project = self.keeper.get_random("keystone", "projects")
