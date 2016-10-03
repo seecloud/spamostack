@@ -16,7 +16,6 @@
 import argparse
 
 import faker
-
 from openstackclient.common import clientmanager
 from os_client_config import config as cloud_config
 
