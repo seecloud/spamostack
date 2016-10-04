@@ -17,6 +17,7 @@ import argparse
 import collections
 import json
 import logging
+import sys
 
 from cache import Cache
 from client_factory import ClientFactory
@@ -30,6 +31,8 @@ parser.add_argument('--pipe', dest='pipelines',
                     default='/etc/spamostack/conf.json',
                     help='Path to the config file with pipes')
 parser.add_argument('--db', dest='db', default='./db',
+                    help='Path to the database directory')
+parser.add_argument('--clean', dest='clean', nargs='+',
                     help='Path to the database directory')
 args = parser.parse_args()
 
@@ -49,6 +52,10 @@ def main():
 
     admin_factory = ClientFactory(cache, cache["users"]["admin"])
     admin_keeper = Keeper(cache, admin_factory)
+
+    if args.clean:
+        admin_keeper.clean(args.clean)
+        sys.exit()
 
     for pipe_name, pipe in pipelines.iteritems():
         simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))

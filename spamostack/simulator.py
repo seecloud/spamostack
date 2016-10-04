@@ -33,10 +33,13 @@ class Simulator(object):
 
         @param name: Name of the pipeline
         @type name: `str`
+
         @param pipeline: Pipeline to be executed
         @type pipeline: `dict`
+
         @param cahce: Reference to the cache
         @type cache: `spamostack.cache.Cache`
+
         @param keeper: Reference to the keeper
         @type keeper: `keeper.Keeper`
         """
@@ -73,10 +76,13 @@ class Simulator(object):
 
         @param func: Method to be executed
         @type func: `method`
+
         @param period: Time line to execute the method
         @type period: `int`
+
         @param number: Number of executes
         @type number: `int`
+
         @param count: Number of repeats that period
         @type count: `int`
         """

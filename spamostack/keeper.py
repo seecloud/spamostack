@@ -22,6 +22,7 @@ class Keeper(object):
 
         @param cahce: Reference to the cache
         @type cache: `spamostack.cache.Cache`
+
         @param client_factory: Reference to the client factory
         @type client_factory: `client_factory.ClientFactory`
         """
@@ -42,32 +43,46 @@ class Keeper(object):
 
         @param client_name: Name of the client
         @type client_name: `str`
+
         @param resource_name: Name of the resource under specific component
         @type resource_name: `str`
+
         @param id: ID of the resource
         @type id: `str`
         """
 
         client = getattr(self.client_factory, client_name)()
         resource = getattr(client, resource_name)
-
-        return getattr(resource, "get")(id)
+        found = None
+        try:
+            found = getattr(resource, "get")(id)
+        except Exception:
+            pass
+        finally:
+            return found
 
     def get_by_name(self, client_name, resource_name, name):
         """Get resource by name
 
         @param client_name: Name of the client
         @type client_name: `str`
+
         @param resource_name: Name of the resource under specific component
         @type resource_name: `str`
+
         @param name: Name of the resource
         @type name: `str`
         """
 
         client = getattr(self.client_factory, client_name)()
         resource = getattr(client, resource_name)
-
-        return getattr(resource, "find")(name=name)
+        found = None
+        try:
+            found = getattr(resource, "find")(name=name)
+        except Exception:
+            pass
+        finally:
+            return found
 
     def get_unused(self, resource):
         """Get unused resource
@@ -89,3 +104,26 @@ class Keeper(object):
         """
 
         return random.choice(resource.keys())
+
+    def clean(self, component_names):
+        """Delete all the resources for specific component
+
+        @param component_names: Names of the components that resources
+        will be cleared
+        @type component_names: `list(str)`
+        """
+
+        admin_user_id = self.get_by_name("keystone", "users", "admin").id
+
+        for client_name in component_names:
+            client = getattr(self.client_factory, client_name)()
+            for resource_name, resource in self.cache[client_name].iteritems():
+                resource_obj = getattr(client.client, resource_name)
+                for id in resource.keys():
+                    if id != admin_user_id:
+                        resource_obj.delete(self.get_by_id(client_name,
+                                                           resource_name, id))
+                    del self.cache[client_name][resource_name][id]
+            if client_name == "keystone":
+                for key in self.cache["users"].keys():
+                    del self.cache["users"][key]
