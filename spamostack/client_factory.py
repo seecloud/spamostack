@@ -46,7 +46,7 @@ def uncache(func):
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
-        del self.cache[self.__class__.__name__.lower()][section][processed.id]
+        del self.cache[self.__class__.__name__.lower()][section][processed]
 
         return processed
 
@@ -59,8 +59,10 @@ class ClientFactory(object):
 
         @param cahce: Reference to the cache
         @type cache: spamostack.cache.Cache
+
         @param user: User for client factory instance
         @type user: `dict` or `User`
+
         @param keeper: Reference to the keeper
         @type keeper: `keeper.Keeper`
         """
@@ -130,10 +132,15 @@ class Keystone(object):
 
         @param cache: Cache
         @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
         @param keeper: Reference to the keeper
         @type keeper: `keeper.Keeper`
-        @param active_session: Specific session for that client
-        @type active_session: `session.Session`
         """
 
         self.cache = cache
@@ -150,16 +157,21 @@ class Keystone(object):
         self.users.create = self.user_create
         self.users.update = self.user_update
         self.users.delete = self.user_delete
+        self.users.old_delete = self.client.users.delete
 
         self.projects.get = self.client.projects.get
-        self.projects.fidn = self.client.projects.find
+        self.projects.find = self.client.projects.find
         self.projects.create = self.project_create
         self.projects.update = self.project_update
         self.projects.delete = self.project_delete
 
     @cache
     def user_create(self):
-        name = self.faker.name()
+        while True:
+            name = self.faker.name()
+            if self.keeper.get_by_name("keystone", "users", name) is None:
+                break
+
         password = self.faker.password()
         email = self.faker.safe_email()
         project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
@@ -174,21 +186,42 @@ class Keystone(object):
                                         default_project=project)
 
         self.roles.grant(self.roles.find(name="admin"), user, project=project)
-        self.cache["users"][name] = {"password": password,
-                                     "project_name": project.name,
-                                     "project_domain_id": project.domain_id}
+        self.cache["users"][name] = {"os_username": user.name,
+                                     "os_password": password,
+                                     "os_project_name": project.name,
+                                     "os_project_domain_id": project.domain_id,
+                                     "os_user_domain_id": user.domain_id}
 
         return user
 
     @cache
     def user_update(self):
-        name = self.faker.name()
-        password = self.faker.password()
-        email = self.faker.safe_email()
-        user = None
-        while user is None or user.name == "admin":
+        while True:
+            name = self.faker.name()
+            if self.keeper.get_by_name("keystone", "users", name) is None:
+                break
+
+        while True:
             user_id = self.keeper.get_random(self.cache["keystone"]["users"])
             user = self.keeper.get_by_id("keystone", "users", user_id)
+            if user.name != "admin":
+                break
+
+        password = self.faker.password()
+        email = self.faker.safe_email()
+
+        self.cache["users"][name] = {"os_username": name,
+                                     "os_password": password,
+                                     "os_project_name":
+                                     self.cache["users"]
+                                     [user.name]["os_project_name"],
+                                     "os_project_domain_id":
+                                     self.cache["users"]
+                                     [user.name]["os_project_domain_id"],
+                                     "os_user_domain_id":
+                                     self.cache["users"]
+                                     [user.name]["os_user_domain_id"]}
+        del self.cache["users"][user.name]
         return self.client.users.update(user=user,
                                         name=name,
                                         domain="default",
@@ -200,13 +233,22 @@ class Keystone(object):
 
     @uncache
     def user_delete(self):
-        user_id = self.keeper.get_random(self.cache["keystone"]["users"])
-        return self.client.users.delete(
-            self.keeper.get_by_id("keystone", "users", user_id))
+        while True:
+            user_id = self.keeper.get_random(self.cache["keystone"]["users"])
+            user = self.keeper.get_by_id("keystone", "users", user_id)
+            if user.name != "admin":
+                break
+
+        self.client.users.delete(user)
+        return user_id
 
     @cache
     def project_create(self):
-        name = self.faker.word()
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("keystone", "projects", name) is None:
+                break
+
         return self.client.projects.create(name=name,
                                            domain="default",
                                            description=("Project {}".
@@ -215,12 +257,17 @@ class Keystone(object):
 
     @cache
     def project_update(self):
-        name = self.faker.word()
-        project = None
-        while project is None or project.name == "admin":
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("keystone", "projects", name) is None:
+                break
+
+        while True:
             project_id = self.keeper.get_random(
                 self.cache["keystone"]["projects"])
             project = self.keeper.get_by_id("keystone", "projects", project_id)
+            if project.name != "admin":
+                break
         return self.client.projects.update(project=project,
                                            name=name,
                                            domain="default",
@@ -230,9 +277,15 @@ class Keystone(object):
 
     @uncache
     def project_delete(self):
-        project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
-        return self.client.projects.delete(
-            self.keeper.get_by_id("keystone", "projects", project_id))
+        while True:
+            project_id = self.keeper.get_random(
+                self.cache["keystone"]["projects"])
+            project = self.keeper.get_by_id("keystone", "projects", project_id)
+            if project.name != "admin":
+                break
+
+        self.client.projects.delete(project)
+        return project_id
 
 
 class Neutron(object):

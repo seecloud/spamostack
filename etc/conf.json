@@ -22,7 +22,8 @@
       "projects":
       {
         "create": [60, 1, 1],
-        "update": [60, 1, 1]
+        "update": [60, 1, 1],
+        "delete": [30, 1, 1]
       },
       "users":
       {

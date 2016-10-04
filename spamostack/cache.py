@@ -122,15 +122,15 @@ class Cache(collections.MutableMapping, object):
                       os.environ['OS_PASSWORD'],
                       "os_project_name":
                       os.environ['OS_PROJECT_NAME'],
-                      "os_auth_url":
-                      os.environ['OS_AUTH_URL'],
                       "os_project_domain_id":
                       os.environ['OS_PROJECT_DOMAIN_ID'],
                       "os_user_domain_id":
                       os.environ['OS_USER_DOMAIN_ID']}
         self.cache["users"][uname] = admin_user
 
-        self.cache["api"] = {"os_compute_api_version":
+        self.cache["api"] = {"os_auth_url":
+                             os.environ['OS_AUTH_URL'],
+                             "os_compute_api_version":
                              os.environ['OS_COMPUTE_API_VERSION'],
                              "os_identity_api_version":
                              os.environ['OS_IDENTITY_API_VERSION'],
