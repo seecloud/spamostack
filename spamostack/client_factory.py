@@ -238,7 +238,7 @@ class Keystone(object):
             user = self.keeper.get_by_id("keystone", "users", user_id)
             if user.name != "admin":
                 break
-        
+
         self.client.users.delete(user)
         return user_id
 
@@ -278,7 +278,8 @@ class Keystone(object):
     @uncache
     def project_delete(self):
         while True:
-            project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
+            project_id = self.keeper.get_random(
+                self.cache["keystone"]["projects"])
             project = self.keeper.get_by_id("keystone", "projects", project_id)
             if project.name != "admin":
                 break

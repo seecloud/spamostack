@@ -1,3 +1,11 @@
+spamostack
+==========
+
+.. image:: https://travis-ci.org/seecloud/spamostack.svg?branch=master
+    :target: https://travis-ci.org/seecloud/spamostack
+.. image:: https://coveralls.io/repos/github/seecloud/spamostack/badge.svg?branch=master
+    :target: https://coveralls.io/github/seecloud/spamostack?branch=master
+
 Installation
 ------------
 
@@ -19,13 +27,6 @@ For installation just type it in the project folder ``pip install -e .``
 
 Configuring spamostack
 ----------------------
-spamostack
-==========
-
-.. image:: https://travis-ci.org/seecloud/spamostack.svg?branch=master
-    :target: https://travis-ci.org/seecloud/spamostack
-.. image:: https://coveralls.io/repos/github/seecloud/spamostack/badge.svg?branch=master
-    :target: https://coveralls.io/github/seecloud/spamostack?branch=master
 
 Please, configure your settings by changing config file in the ``/etc/spamostack`` folder.
 File ``openrc`` is needed for connecting to your cloud, and ``conf.json`` file is needed for configuring pipelines.
