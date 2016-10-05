@@ -36,6 +36,13 @@ class Keeper(object):
 
         client = getattr(self.client_factory, "keystone")()
         user = client.users.find(name="admin")
+        project = client.projects.find(name="admin")
+        self.client_factory.nova().native.quotas.update(
+            project.id, cores=-1, floating_ips=-1, gigabytes=-1, instances=-1,
+            key_pairs=-1, networks=-1, ports=-1, properties=-1, ram=-1,
+            rbac_policies=-1, routers=-1, secgroup_rules=-1, secgroups=-1,
+            server_group_members=-1, server_groups=-1, snapshots=-1,
+            subnets=-1, volumes=-1)
         self.cache["keystone"]["users"][user.id] = False
 
     def get_by_id(self, client_name, resource_name, id):
@@ -93,7 +100,17 @@ class Keeper(object):
 
         for key, value in resource.iteritems():
             if value is False:
-                resource[key] = True
+                return key
+
+    def get_used(self, resource):
+        """Get used resource
+
+        @param resource: Part of the cache
+        @type resource: `str`
+        """
+
+        for key, value in resource.iteritems():
+            if value is True:
                 return key
 
     def get_random(self, resource):
@@ -118,7 +135,7 @@ class Keeper(object):
         for client_name in component_names:
             client = getattr(self.client_factory, client_name)()
             for resource_name, resource in self.cache[client_name].iteritems():
-                resource_obj = getattr(client.client, resource_name)
+                resource_obj = getattr(client.native, resource_name)
                 for id in resource.keys():
                     if id != admin_user_id:
                         resource_obj.delete(self.get_by_id(client_name,

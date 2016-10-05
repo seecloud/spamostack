@@ -13,6 +13,13 @@
         "create": [60, 2, 1],
         "update": [120, 2, 1]
       }
+    },
+    "cinder":
+    {
+      "volumes":
+      {
+        "create": [60, 2, 1]
+      }
     }
   },
   "pipe2":
@@ -21,7 +28,7 @@
     {
       "projects":
       {
-        "create": [60, 1, 1],
+        "create": [60, 2, 1],
         "update": [60, 1, 1],
         "delete": [30, 1, 1]
       },
