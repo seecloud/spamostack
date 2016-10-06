@@ -270,12 +270,20 @@ class Keystone(object):
                                               description=("Project {}".
                                                            format(name)),
                                               enabled=True)
-        self.keeper.client_factory.nova().native.quotas.update(
-            project.id, cores=-1, floating_ips=-1, gigabytes=-1, instances=-1,
-            key_pairs=-1, networks=-1, ports=-1, properties=-1, ram=-1,
-            rbac_policies=-1, routers=-1, secgroup_rules=-1, secgroups=-1,
-            server_group_members=-1, server_groups=-1, snapshots=-1,
-            subnets=-1, volumes=-1)
+        # quotas update
+        self.keeper.client_factory.cinder().native.quotas.update(project.id,
+            backup_gigabytes=-1, backups=-1, gigabytes=-1,
+            per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
+        self.keeper.client_factory.neutron().native.update_quota(project.id,
+            subnet=-1, network=-1, floatingip=-1, subnetpool=-1, port=-1,
+            security_group_rule=-1, security_group=-1, router=-1,
+            rbac_policy=-1)
+        self.keeper.client_factory.nova().native.quotas.update(project.id,
+            cores=-1, fixed_ips=-1, floating_ips=-1,
+            injected_file_content_bytes=-1, injected_file_path_bytes=-1,
+            injected_files=-1, instances=-1, key_pairs=-1, metadata_items=-1,
+            ram=-1, security_group_rules=-1, security_groups=-1,
+            server_group_members=-1, server_groups=-1)
 
         return project
 
@@ -320,12 +328,30 @@ class Keystone(object):
 
 class Neutron(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        pass
+        """Create `Neutron` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
+        self.cache = cache
+        self.native = client
+        self.faker = faker
+        self.keeper = keeper
 
 
 class Cinder(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Keystone` class instance.
+        """Create `Cinder` class instance.
 
         @param cache: Cache
         @type cache: `cache.Cache`
@@ -355,7 +381,7 @@ class Cinder(object):
         self.volumes.update = self.volume_update
         self.volumes.extend = self.volume_extend
         self.volumes.attach = self.volume_attach
-        self.volumes.deattach = self.volume_deatach
+        self.volumes.detach = self.volume_detach
         self.volumes.delete = self.volume_delete
 
     @cache
@@ -422,7 +448,7 @@ class Cinder(object):
 
         return self.native.volumes.attach(volume, instance_id, volume.name)
 
-    def volume_deatach(self):
+    def volume_detach(self):
         volume_id = self.keeper.get_used(self.cache["cinder"]["volumes"])
 
         # TO-DO: Make a normal warning logging
@@ -432,7 +458,7 @@ class Cinder(object):
         self.cache["cinder"]["volumes"][volume_id] = False
         volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
 
-        return self.native.volumes.detatch(volume)
+        return self.native.volumes.detach(volume)
 
     @uncache
     def volume_delete(self):
@@ -447,13 +473,48 @@ class Cinder(object):
 
         return volume_id
 
-class Nova(object):
+
+class Glance(object):
     def __init__(self, cache, client, faker=None, keeper=None):
+        """Create `Glance` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
         self.cache = cache
         self.native = client
         self.faker = faker
         self.keeper = keeper
 
-class Glance(object):
+
+class Nova(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        pass
+        """Create `Nova` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
+        self.cache = cache
+        self.native = client
+        self.faker = faker
+        self.keeper = keeper
