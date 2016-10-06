@@ -154,7 +154,6 @@ class Cache(collections.MutableMapping, object):
         self.cache["cinder"]["volumes"] = LevelCache(
             os.path.join(cinder_path, "volumes"))
 
-
         neutron_path = os.path.join(self.path, "neutron")
         if not os.path.exists(neutron_path):
             os.mkdir(neutron_path)
