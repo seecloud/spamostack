@@ -24,6 +24,8 @@ from os_client_config import config as cloud_config
 def cache(func):
     def wrapper(self, *args, **kwargs):
         processed = func(self, *args, **kwargs)
+        if processed is None:
+            return
         section = ""
 
         if "user" in func.__name__:
@@ -32,6 +34,12 @@ def cache(func):
             section = "projects"
         elif "volume" in func.__name__:
             section = "volumes"
+        elif "network" in func.__name__:
+            section = "networks"
+        elif "router" in func.__name__:
+            section = "routers"
+        elif "port" in func.__name__:
+            section = "ports"
         elif "flavor" in func.__name__:
             section = "flavors"
         elif "server" in func.__name__:
@@ -49,12 +57,22 @@ def cache(func):
 def uncache(func):
     def wrapper(self, *args, **kwargs):
         processed = func(self, *args, **kwargs)
+        if processed is None:
+            return
         section = ""
 
         if "user" in func.__name__:
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
+        elif "volume" in func.__name__:
+            section = "volumes"
+        elif "network" in func.__name__:
+            section = "networks"
+        elif "router" in func.__name__:
+            section = "routers"
+        elif "port" in func.__name__:
+            section = "ports"
         elif "flavor" in func.__name__:
             section = "flavors"
         elif "server" in func.__name__:
@@ -361,6 +379,158 @@ class Neutron(object):
         self.faker = faker
         self.keeper = keeper
 
+        self.networks = lambda: None
+        self.routers = lambda: None
+        self.ports = lambda: None
+
+        self.networks.get = self.native.get_network
+        self.networks.find = self.native.find_network
+        self.networks.list = self.native.networks
+
+        self.networks.create = self.network_create
+        self.networks.update = self.network_update
+        self.networks.delete = self.network_delete
+
+        self.routers.get = self.native.get_router
+        self.routers.find = self.native.find_router
+        self.routers.list = self.native.routers
+
+        self.routers.create = self.router_create
+        self.routers.update = self.router_update
+        self.routers.delete = self.router_delete
+
+        self.ports.get = self.native.get_port
+        self.ports.find = self.native.find_port
+        self.ports.list = self.native.ports
+
+        self.ports.create = self.port_create
+        self.ports.update = self.port_update
+        self.ports.delete = self.port_delete
+
+    @cache
+    def network_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "networks", name) is None:
+                break
+
+        return self.native.create_network(name=name,
+                                          description=("Network with name {}".
+                                                       format(name)))
+
+    def network_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "networks", name) is None:
+                break
+
+        network_id = self.keeper.get_random(self.cache["neutron"]["networks"])
+
+        # TO-DO: Make a normal warning logging
+        if network_id is None:
+            return
+
+        return self.native.update_network(network_id, name=name,
+                                          description=("Network with name {}".
+                                                       format(name)))
+
+    @uncache
+    def network_delete(self):
+        network_id = self.keeper.get_random(self.cache["neutron"]["networks"])
+
+        # TO-DO: Make a normal warning logging
+        if network_id is None:
+            return
+
+        self.native.delete_network(network_id)
+
+        return network_id
+
+    @cache
+    def router_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "routers", name) is None:
+                break
+
+        return self.native.create_router(name=name,
+                                         description=("Router with name {}".
+                                                      format(name)))
+
+    def router_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "routers", name) is None:
+                break
+
+        router_id = self.keeper.get_random(self.cache["neutron"]["routers"])
+
+        # TO-DO: Make a normal warning logging
+        if router_id is None:
+            return
+
+        return self.native.update_router(router_id, name=name,
+                                         description=("Router with name {}".
+                                                      format(name)))
+
+    @uncache
+    def router_delete(self):
+        router_id = self.keeper.get_random(self.cache["neutron"]["routers"])
+
+        # TO-DO: Make a normal warning logging
+        if router_id is None:
+            return
+
+        self.native.delete_router(router_id)
+
+        return router_id
+
+    @cache
+    def port_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "ports", name) is None:
+                break
+
+        network_id = self.keeper.get_random(self.cache["neutron"]["networks"])
+
+        # TO-DO: Make a normal warning logging
+        if network_id is None:
+            return
+
+        return self.native.create_port(name=name,
+                                       description=("Port with name {}".
+                                                    format(name)),
+                                       network_id=network_id)
+
+    def port_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "ports", name) is None:
+                break
+
+        port_id = self.keeper.get_random(self.cache["neutron"]["ports"])
+
+        # TO-DO: Make a normal warning logging
+        if port_id is None:
+            return
+
+        return self.native.update_port(port_id, name=name,
+                                       description=("Port with name {}".
+                                                    format(name)))
+
+    @uncache
+    def port_delete(self):
+        port_id = self.keeper.get_random(self.cache["neutron"]["ports"])
+
+        # TO-DO: Make a normal warning logging
+        if port_id is None:
+            return
+
+        self.native.delete_port(port_id)
+
+        return port_id
+
 
 class Cinder(object):
     def __init__(self, cache, client, faker=None, keeper=None):
@@ -506,9 +676,6 @@ class Nova(object):
 
         self.cache = cache
         self.native = client
-        self.faker = faker
-        self.keeper = keeper
-
         self.faker = faker
         self.keeper = keeper
 

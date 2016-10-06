@@ -5,20 +5,42 @@
     {
       "projects":
       {
-        "create": [30, 1, 1],
-        "update": [30, 1, 1]
+        "create": [15, 1, 1],
+        "update": [15, 1, 1]
       },
       "users":
       {
-        "create": [30, 2, 1],
-        "update": [60, 2, 1]
+        "create": [15, 2, 1],
+        "update": [30, 2, 1]
       }
     },
     "cinder":
     {
       "volumes":
       {
-        "create": [30, 2, 1]
+        "create": [15, 2, 1],
+        "update": [15, 1, 1]
+      }
+    },
+    "neutron":
+    {
+      "networks":
+      {
+        "create": [15, 2, 1],
+        "update": [15, 1, 1],
+        "delete": [15, 1, 1]
+      },
+      "routers":
+      {
+        "create": [15, 2, 1],
+        "update": [15, 2, 1],
+        "delete": [15, 1, 1]
+      },
+      "ports":
+      {
+        "create": [15, 5, 1],
+        "update": [15, 3, 1],
+        "delete": [15, 2, 1]
       }
     }
   },
@@ -27,15 +49,15 @@
     {
       "projects":
       {
-        "create": [10, 1, 1],
-        "update": [10, 1, 1]
+        "create": [15, 2, 1],
+        "update": [15, 1, 1],
+        "delete": [15, 1, 1]
       },
       "users":
       {
-        "create": [10, 2, 1],
-        "update": [10, 2, 1],
-        "delete": [30, 1, 1]
-     }
+        "create": [15, 2, 1],
+        "update": [30, 2, 1]
+      }
     },
     "nova":
     {
@@ -61,10 +83,10 @@
     {
       "volumes":
       {
-        "create": [30, 2, 1],
-        "update": [30, 1, 1],
-        "attach": [30, 1, 1],
-        "delete": [30, 1, 1]
+        "create": [15, 2, 1],
+        "update": [15, 1, 1],
+        "attach": [15, 1, 1],
+        "delete": [15, 1, 1]
       }
     }
   }
