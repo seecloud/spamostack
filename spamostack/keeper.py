@@ -36,7 +36,23 @@ class Keeper(object):
 
         client = getattr(self.client_factory, "keystone")()
         user = client.users.find(name="admin")
+        project = client.projects.find(name="admin")
         self.cache["keystone"]["users"][user.id] = False
+
+        # quotas update
+        self.client_factory.cinder().native.quotas.update(
+            project.id, backup_gigabytes=-1, backups=-1, gigabytes=-1,
+            per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
+        self.client_factory.neutron().native.update_quota(
+            project.id, subnet=-1, network=-1, floatingip=-1, subnetpool=-1,
+            port=-1, security_group_rule=-1, security_group=-1, router=-1,
+            rbac_policy=-1)
+        self.client_factory.nova().native.quotas.update(
+            project.id, cores=-1, fixed_ips=-1, floating_ips=-1,
+            injected_file_content_bytes=-1, injected_file_path_bytes=-1,
+            injected_files=-1, instances=-1, key_pairs=-1, metadata_items=-1,
+            ram=-1, security_group_rules=-1, security_groups=-1,
+            server_group_members=-1, server_groups=-1)
 
     def get_by_id(self, client_name, resource_name, id):
         """Get resource by id
@@ -93,7 +109,17 @@ class Keeper(object):
 
         for key, value in resource.iteritems():
             if value is False:
-                resource[key] = True
+                return key
+
+    def get_used(self, resource):
+        """Get used resource
+
+        @param resource: Part of the cache
+        @type resource: `str`
+        """
+
+        for key, value in resource.iteritems():
+            if value is True:
                 return key
 
     def get_random(self, resource):
@@ -118,7 +144,7 @@ class Keeper(object):
         for client_name in component_names:
             client = getattr(self.client_factory, client_name)()
             for resource_name, resource in self.cache[client_name].iteritems():
-                resource_obj = getattr(client.client, resource_name)
+                resource_obj = getattr(client.native, resource_name)
                 for id in resource.keys():
                     if id != admin_user_id:
                         resource_obj.delete(self.get_by_id(client_name,
