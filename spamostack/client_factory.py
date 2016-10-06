@@ -39,6 +39,7 @@ def cache(func):
 
     return wrapper
 
+
 def uncache(func):
     def wrapper(self, *args, **kwargs):
         processed = func(self, *args, **kwargs)
