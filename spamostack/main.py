@@ -57,6 +57,15 @@ def main():
         admin_keeper.clean(args.clean)
         sys.exit()
 
+    # This section for default initialization of cirros image
+    (cache["glance"]["images"]
+     [admin_keeper.get_by_name("glance", "images",
+                               "cirros-0.3.4-x86_64-uec").id]) = False
+    for flavor in admin_factory.nova().native.flavors.list():
+        (cache["nova"]["flavors"][flavor.id]) = False
+    for security_group in admin_factory.nova().native.security_groups.list():
+        (cache["nova"]["security_groups"][security_group.id]) = False
+
     for pipe_name, pipe in pipelines.iteritems():
         simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
 
