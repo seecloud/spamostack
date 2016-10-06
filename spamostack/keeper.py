@@ -129,6 +129,9 @@ class Keeper(object):
         @type resource: `str`
         """
 
+        if len(resource.keys()) == 0:
+            return
+
         return random.choice(resource.keys())
 
     def clean(self, component_names):

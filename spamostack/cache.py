@@ -144,14 +144,19 @@ class Cache(collections.MutableMapping, object):
         keystone_path = os.path.join(self.path, "keystone")
         if not os.path.exists(keystone_path):
             os.mkdir(keystone_path)
-        self.cache["keystone"]["projects"] = LevelCache(
-            os.path.join(keystone_path, "projects"))
-
-        self.cache["keystone"]["users"] = LevelCache(
-            os.path.join(self.path, "keystone", "users"))
+        for resource in ["users", "projects"]:
+            self.cache["keystone"][resource] = LevelCache(
+                os.path.join(keystone_path, resource))
 
         cinder_path = os.path.join(self.path, "cinder")
         if not os.path.exists(cinder_path):
             os.mkdir(cinder_path)
         self.cache["cinder"]["volumes"] = LevelCache(
             os.path.join(cinder_path, "volumes"))
+
+        neutron_path = os.path.join(self.path, "neutron")
+        if not os.path.exists(neutron_path):
+            os.mkdir(neutron_path)
+        for resource in ["networks", "routers", "ports"]:
+            self.cache["neutron"][resource] = LevelCache(
+                os.path.join(neutron_path, resource))
