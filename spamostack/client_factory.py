@@ -32,6 +32,12 @@ def cache(func):
             section = "projects"
         elif "volume" in func.__name__:
             section = "volumes"
+        elif "flavor" in func.__name__:
+            section = "flavors"
+        elif "server" in func.__name__:
+            section = "servers"
+        elif "image" in func.__name__:
+            section = "images"
         (self.cache[self.__class__.__name__.lower()][section].
          setdefault(processed.id, False))
 
@@ -49,6 +55,12 @@ def uncache(func):
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
+        elif "flavor" in func.__name__:
+            section = "flavors"
+        elif "server" in func.__name__:
+            section = "servers"
+        elif "image" in func.__name__:
+            section = "images"
         del self.cache[self.__class__.__name__.lower()][section][processed]
 
         return processed
@@ -475,6 +487,95 @@ class Cinder(object):
         return volume_id
 
 
+class Nova(object):
+    def __init__(self, cache, client, faker=None, keeper=None):
+        """Create `Nova` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
+        self.cache = cache
+        self.native = client
+        self.faker = faker
+        self.keeper = keeper
+
+        self.faker = faker
+        self.keeper = keeper
+
+        self.flavors = lambda: None
+        self.flavors.get = self.native.flavors.get
+        self.flavors.find = self.native.flavors.find
+        self.flavors.create = self.flavor_create
+        self.flavors.delete = self.flavor_delete
+
+        self.security_groups = lambda: None
+        self.security_groups.get = self.native.security_groups.get
+        self.security_groups.find = self.native.security_groups.find
+
+        self.servers = lambda: None
+        self.servers.get = self.native.servers.get
+        self.servers.find = self.native.servers.find
+        self.servers.create = self.server_create
+        self.servers.update = self.server_update
+
+    @cache
+    def flavor_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("nova", "flavors", name) is None:
+                break
+        return self.native.flavors.create(name, 1, 1, 1)
+
+    @uncache
+    def flavor_delete(self):
+        pass
+
+    @cache
+    def server_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("nova", "servers", name) is None:
+                break
+
+        image_id = self.keeper.get_random(self.cache["glance"]["images"])
+        image = self.keeper.get_by_id("glance", "images", image_id)
+        flavor_id = self.keeper.get_random(self.cache["nova"]["flavors"])
+        flavor = self.keeper.get_by_id("nova", "flavors", flavor_id)
+        if "security_groups" in self.cache["nova"]:
+            # FIXME (mivanov) Fix security groups assigning ASAP
+            security_group = None
+            # security_group_id = self.keeper.get_random(
+            #    self.cache["nova"]["security_groups"])
+            # security_group = self.keeper.get_by_id(
+            #    "nova", "security_groups", security_group_id)
+        else:
+            security_group = None
+
+        return self.native.servers.create(name=name, image=image,
+                                          flavor=flavor,
+                                          security_groups=security_group)
+
+    def server_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("nova", "servers", name) is None:
+                break
+
+        server_id = self.keeper.get_random(
+            self.cache["nova"]["servers"])
+        return self.native.servers.update(server=server_id, name=name)
+
+
 class Glance(object):
     def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Glance` class instance.
@@ -497,25 +598,34 @@ class Glance(object):
         self.faker = faker
         self.keeper = keeper
 
+        self.images = lambda: None
+        self.images.get = self.native.images.get
+        self.images.list = self.native.images.list
+        self.images.find = self.find
+        self.images.create = self.image_create
+        self.images.update = self.image_update
 
-class Nova(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Nova` class instance.
+    def find(self, **kwargs):
+        return list(self.native.images.list(filters=kwargs))[0]
 
-        @param cache: Cache
-        @type cache: `cache.Cache`
+    @cache
+    def image_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("glance", "images", name) is None:
+                break
+        image = self.native.images.create(name=name, data=name,
+                                          disk_format='raw',
+                                          container_format='bare',
+                                          visibility='public')
+        self.native.images.upload(image.id, '')
+        return image
 
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.cache = cache
-        self.native = client
-        self.faker = faker
-        self.keeper = keeper
+    def image_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("glance", "images", name) is None:
+                break
+        image_id = self.keeper.get_random(self.cache["glance"]["images"])
+        image = self.native.images.update(image_id, name=name)
+        return image
