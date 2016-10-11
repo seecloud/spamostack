@@ -13,786 +13,1328 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import argparse
-import random
+import re
 
-import faker
-from openstackclient.common import clientmanager
-from os_client_config import config as cloud_config
-
-
-def cache(func):
-    def wrapper(self, *args, **kwargs):
-        processed = func(self, *args, **kwargs)
-        if processed is None:
-            return
-        section = ""
-
-        if "user" in func.__name__:
-            section = "users"
-        elif "project" in func.__name__:
-            section = "projects"
-        elif "volume" in func.__name__:
-            section = "volumes"
-        elif "network" in func.__name__:
-            section = "networks"
-        elif "router" in func.__name__:
-            section = "routers"
-        elif "port" in func.__name__:
-            section = "ports"
-        elif "flavor" in func.__name__:
-            section = "flavors"
-        elif "server" in func.__name__:
-            section = "servers"
-        elif "image" in func.__name__:
-            section = "images"
-        (self.cache[self.__class__.__name__.lower()][section].
-         setdefault(processed.id, False))
-
-        return processed
-
-    return wrapper
-
-
-def uncache(func):
-    def wrapper(self, *args, **kwargs):
-        processed = func(self, *args, **kwargs)
-        if processed is None:
-            return
-        section = ""
-
-        if "user" in func.__name__:
-            section = "users"
-        elif "project" in func.__name__:
-            section = "projects"
-        elif "volume" in func.__name__:
-            section = "volumes"
-        elif "network" in func.__name__:
-            section = "networks"
-        elif "router" in func.__name__:
-            section = "routers"
-        elif "port" in func.__name__:
-            section = "ports"
-        elif "flavor" in func.__name__:
-            section = "flavors"
-        elif "server" in func.__name__:
-            section = "servers"
-        elif "image" in func.__name__:
-            section = "images"
-        del self.cache[self.__class__.__name__.lower()][section][processed]
-
-        return processed
-
-    return wrapper
+from cinderclient import client as cinder_client
+from glanceclient import client as glance_client
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
+from keystoneclient import client as keystone_client
+from neutronclient.neutron import client as neutron_client
+from novaclient import client as nova_client
 
 
 class ClientFactory(object):
-    def __init__(self, cache, user, keeper=None):
+    def __init__(self, user, os_identity_api_version="3",
+                 os_network_api_version="2", os_volume_api_version="2",
+                 os_compute_api_version="2", os_image_api_version="2"):
         """Create instance of `ClientFactory` class
-
-        @param cahce: Reference to the cache
-        @type cache: spamostack.cache.Cache
 
         @param user: User for client factory instance
         @type user: `dict` or `User`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
         """
 
-        self.cache = cache
-        self.keeper = keeper
-        self.faker = faker.Factory.create('en_US')
-
-        # Initialization of client manager
-        if isinstance(user, dict):
-            user_copy = user.copy()
-            user_copy.update(self.cache["api"])
-            opts = argparse.Namespace(**user_copy)
-        else:
-            user_copy = self.cache["users"][user.name].copy()
-            user_copy.update(self.cache["api"])
-            opts = argparse.Namespace(**user_copy)
-        opts.cloud = ""
-        cc = cloud_config.OpenStackConfig()
-        cloud = cc.get_one_cloud(cloud=opts.cloud, argparse=opts)
-        api_version = {}
-        for mod in clientmanager.PLUGIN_MODULES:
-            version_opt = getattr(opts, mod.API_VERSION_OPTION, None)
-            if version_opt:
-                api = mod.API_NAME
-                api_version[api] = version_opt
-
-        self.client_manager = clientmanager.ClientManager(
-            cli_options=cloud, api_version=api_version)
-        self.client_manager.setup_auth()
-        self.client_manager.auth_ref
+        self.auth = v3.Password(**user)
+        self.session = session.Session(auth=self.auth)
+        self.os_identity_api_version = os_identity_api_version
+        self.os_network_api_version = os_network_api_version
+        self.os_volume_api_version = os_volume_api_version
+        self.os_compute_api_version = os_compute_api_version
+        self.os_image_api_version = os_image_api_version
 
     def keystone(self):
         """Create Keystone client."""
 
-        return Keystone(self.cache, self.client_manager.identity, self.faker,
-                        self.keeper)
+        return Keystone(keystone_client.Client(self.os_identity_api_version,
+                                               session=self.session))
 
     def neutron(self):
         """Create Neutron client."""
 
-        return Neutron(self.cache, self.client_manager.network, self.faker,
-                       self.keeper)
+        return Neutron(neutron_client.Client(self.os_network_api_version,
+                                             session=self.session))
 
     def cinder(self):
         """Create Cinder client."""
 
-        return Cinder(self.cache, self.client_manager.volume, self.faker,
-                      self.keeper)
+        return Cinder(cinder_client.Client(self.os_volume_api_version,
+                                           session=self.session))
 
     def nova(self):
         """Create Nova client."""
 
-        return Nova(self.cache, self.client_manager.compute, self.faker,
-                    self.keeper)
+        return Nova(nova_client.Client(self.os_compute_api_version,
+                                       session=self.session))
 
     def glance(self):
         """Create Glance client."""
 
-        return Glance(self.cache, self.client_manager.image, self.faker,
-                      self.keeper)
+        return Glance(glance_client.Client(self.os_image_api_version,
+                                           session=self.session))
+
+
+class Accessible(dict):
+    def __init__(self, *args, **kwargs):
+        super(Accessible, self).__init__(*args, **kwargs)
+        for arg in args:
+            if isinstance(arg, dict):
+                for k, v in arg.iteritems():
+                    self[k] = v
+    
+        if kwargs:
+            for k, v in kwargs.iteritems():
+                self[k] = v
+
+    def __getattr__(self, attr):
+        return self.get(attr)
+
+    def __setattr__(self, key, value):
+        self.__setitem__(key, value)
+
+    def __setitem__(self, key, value):
+        super(Accessible, self).__setitem__(key, value)
+        self.__dict__.update({key: value})
+
+    def __delattr__(self, item):
+        self.__delitem__(item)
+
+    def __delitem__(self, key):
+        super(Accessible, self).__delitem__(key)
+        del self.__dict__[key]
+
+
+def _obj_to_accessible(component):
+    def obj_to_accessible(func):
+        def wrapper(*args, **kwargs):
+            return Accessible(func(*args, **kwargs)[component])
+        return wrapper
+    return obj_to_accessible
+
+
+def _lst_to_accessible(component):
+    def lst_to_accessible(func):
+        def wrapper(*args, **kwargs):
+            result = []
+            for el in func(*args, **kwargs)[component]:
+                result.append(Accessible(el))
+            return result
+        return wrapper
+    return lst_to_accessible
+
+
+def _to_body(component, **kwargs):
+    body = {component: {}}
+
+    for key, value in kwargs.iteritems():
+        body[component][key] = value
+
+    return body
 
 
 class Keystone(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Keystone` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.cache = cache
+    def __init__(self, client):
         self.native = client
-        self.faker = faker
-        self.keeper = keeper
 
-        self.users = lambda: None
-        self.projects = lambda: None
-
-        self.users.get = self.native.users.get
-        self.users.find = self.native.users.find
-        self.users.list = self.native.users.list
-
-        self.users.create = self.user_create
-        self.users.update = self.user_update
-        self.users.delete = self.user_delete
-
-        self.projects.get = self.native.projects.get
-        self.projects.find = self.native.projects.find
-        self.projects.list = self.native.projects.list
-
-        self.projects.create = self.project_create
-        self.projects.update = self.project_update
-        self.projects.delete = self.project_delete
-
-    @cache
-    def user_create(self):
-        while True:
-            name = self.faker.name()
-            if self.keeper.get_by_name("keystone", "users", name) is None:
-                break
-
-        password = self.faker.password()
-        email = self.faker.safe_email()
-        project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
-
-        # TO-DO: Make a normal warning logging
-        if project_id is None:
-            return
-
-        project = self.keeper.get_by_id("keystone", "projects", project_id)
-        user = self.native.users.create(name=name,
-                                        domain="default",
-                                        password=password,
-                                        email=email,
-                                        description=("User with name {}".
-                                                     format(name)),
-                                        enabled=True,
-                                        default_project=project)
-
-        self.native.roles.grant(self.native.roles.find(name="admin"),
-                                user, project=project)
-        self.cache["users"][name] = {"os_username": user.name,
-                                     "os_password": password,
-                                     "os_project_name": project.name,
-                                     "os_project_domain_id": project.domain_id,
-                                     "os_user_domain_id": user.domain_id}
-
-        return user
-
-    def user_update(self):
-        while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["users"]) == 1:
-                return
-            name = self.faker.name()
-            if self.keeper.get_by_name("keystone", "users", name) is None:
-                break
-
-        while True:
-            user_id = self.keeper.get_random(self.cache["keystone"]["users"])
-            user = self.keeper.get_by_id("keystone", "users", user_id)
-            if user.name != "admin":
-                break
-
-        password = self.faker.password()
-        email = self.faker.safe_email()
-
-        self.cache["users"][name] = {"os_username": name,
-                                     "os_password": password,
-                                     "os_project_name":
-                                     self.cache["users"]
-                                     [user.name]["os_project_name"],
-                                     "os_project_domain_id":
-                                     self.cache["users"]
-                                     [user.name]["os_project_domain_id"],
-                                     "os_user_domain_id":
-                                     self.cache["users"]
-                                     [user.name]["os_user_domain_id"]}
-        del self.cache["users"][user.name]
-
-        return self.native.users.update(user=user,
-                                        name=name,
-                                        domain="default",
-                                        password=password,
-                                        email=email,
-                                        description=("User with name {}".
-                                                     format(name)),
-                                        enabled=True)
-
-    @uncache
-    def user_delete(self):
-        while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["users"]) == 1:
-                return
-            user_id = self.keeper.get_random(self.cache["keystone"]["users"])
-            user = self.keeper.get_by_id("keystone", "users", user_id)
-            if user.name != "admin":
-                break
-
-        self.native.users.delete(user)
-        return user_id
-
-    @cache
-    def project_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("keystone", "projects", name) is None:
-                break
-
-        project = self.native.projects.create(name=name,
-                                              domain="default",
-                                              description=("Project {}".
-                                                           format(name)),
-                                              enabled=True)
-        # quotas update
-        self.keeper.client_factory.cinder().native.quotas.update(
-            project.id, backup_gigabytes=-1, backups=-1, gigabytes=-1,
-            per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
-        self.keeper.client_factory.neutron().native.update_quota(
-            project.id, subnet=-1, network=-1, floatingip=-1, subnetpool=-1,
-            port=-1, security_group_rule=-1, security_group=-1, router=-1,
-            rbac_policy=-1)
-        self.keeper.client_factory.nova().native.quotas.update(
-            project.id, cores=-1, fixed_ips=-1, floating_ips=-1,
-            injected_file_content_bytes=-1, injected_file_path_bytes=-1,
-            injected_files=-1, instances=-1, key_pairs=-1, metadata_items=-1,
-            ram=-1, security_group_rules=-1, security_groups=-1,
-            server_group_members=-1, server_groups=-1)
-
-        return project
-
-    def project_update(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("keystone", "projects", name) is None:
-                break
-
-        while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["projects"]) == 1:
-                return
-            project_id = self.keeper.get_random(
-                self.cache["keystone"]["projects"])
-            project = self.keeper.get_by_id("keystone", "projects", project_id)
-            if project.name != "admin":
-                break
-
-        return self.native.projects.update(project=project,
-                                           name=name,
-                                           domain="default",
-                                           description=("Project {}".
-                                                        format(name)),
-                                           enabled=True)
-
-    @uncache
-    def project_delete(self):
-        while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["projects"]) == 1:
-                return
-            project_id = self.keeper.get_random(
-                self.cache["keystone"]["projects"])
-            project = self.keeper.get_by_id("keystone", "projects", project_id)
-            if project.name != "admin":
-                break
-
-        self.native.projects.delete(project)
-        return project_id
+        for name in dir(self.native):
+            if not name.startswith("__") and name not in ["service_catalog"]:
+                value = getattr(self.native, name)
+                setattr(self, name, value)
 
 
 class Neutron(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Neutron` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.cache = cache
+    def __init__(self, client):
         self.native = client
-        self.faker = faker
-        self.keeper = keeper
 
-        self.networks = lambda: None
-        self.routers = lambda: None
-        self.ports = lambda: None
+        components = []
+        actions = ["get", "list", "find", "create", "update", "delete"]
 
-        self.networks.get = self.native.get_network
-        self.networks.find = self.native.find_network
-        self.networks.list = self.native.networks
+        for name in dir(self.native):
+            if not name.startswith("_") and name.startswith("create"):
+                component = re.sub("create_", "", name)
+                components.append(component)
+                setattr(self, component + "s", lambda: None)
 
-        self.networks.create = self.network_create
-        self.networks.update = self.network_update
-        self.networks.delete = self.network_delete
+        for component in components:
+            component_obj = getattr(self, component + "s")
+            for action in actions:
+                if (action in ["update"] and
+                    component in ["metering_label", "metering_label_rule",
+                                  "qos_queue",
+                                  "security_group_rule"]):
+                    continue
 
-        self.routers.get = self.native.get_router
-        self.routers.find = self.native.find_router
-        self.routers.list = self.native.routers
+                method = getattr(self, "_{0}_{1}".format(component, action))
+                setattr(component_obj, action, method)
 
-        self.routers.create = self.router_create
-        self.routers.update = self.router_update
-        self.routers.delete = self.router_delete
+    @_obj_to_accessible("address_scope")
+    def _address_scope_create(self, **kwargs):
+        return self.native.create_address_scope(
+            _to_body("address_scope", **kwargs))
 
-        self.ports.get = self.native.get_port
-        self.ports.find = self.native.find_port
-        self.ports.list = self.native.ports
+    def _address_scope_delete(self, id):
+        return self.native.delete_address_scope(id)
 
-        self.ports.create = self.port_create
-        self.ports.update = self.port_update
-        self.ports.delete = self.port_delete
+    @_lst_to_accessible("address_scopes")
+    def _address_scope_find(self, **kwargs):
+        return self._address_scope_list(**kwargs)
 
-    @cache
-    def network_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "networks", name) is None:
-                break
+    @_obj_to_accessible("address_scope")
+    def _address_scope_get(self, id, **kwargs):
+        return self.native.show_address_scope(id, **kwargs)
 
-        return self.native.create_network(name=name,
-                                          description=("Network with name {}".
-                                                       format(name)))
+    @_lst_to_accessible("address_scopes")
+    def _address_scope_list(self, **kwargs):
+        return self.native.list_address_scopes(**kwargs)
 
-    def network_update(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "networks", name) is None:
-                break
+    @_obj_to_accessible("address_scope")
+    def _address_scope_update(self, id, **kwargs):
+        return self.native.update_address_scope(
+            id, _to_body("address_scope", **kwargs))
 
-        network_id = self.keeper.get_random(self.cache["neutron"]["networks"])
+    # ----------------------------------------------------------------------- #
 
-        # TO-DO: Make a normal warning logging
-        if network_id is None:
-            return
+    @_obj_to_accessible("bandwidth_limit_rule")
+    def _bandwidth_limit_rule_create(self, **kwargs):
+        return self.native.create_bandwidth_limit_rule(
+            _to_body("bandwidth_limit_rule", **kwargs))
 
-        return self.native.update_network(network_id, name=name,
-                                          description=("Network with name {}".
-                                                       format(name)))
+    def _bandwidth_limit_rule_delete(self, id):
+        return self.native.delete_bandwidth_limit_rule(id)
 
-    @uncache
-    def network_delete(self):
-        network_id = self.keeper.get_random(self.cache["neutron"]["networks"])
+    @_lst_to_accessible("bandwidth_limit_rules")
+    def _bandwidth_limit_rule_find(self, **kwargs):
+        return self._bandwidth_limit_rule_list(**kwargs)
 
-        # TO-DO: Make a normal warning logging
-        if network_id is None:
-            return
+    @_obj_to_accessible("bandwidth_limit_rule")
+    def _bandwidth_limit_rule_get(self, id, **kwargs):
+        return self.native.show_bandwidth_limit_rule(id, **kwargs)
 
-        self.native.delete_network(network_id)
+    @_lst_to_accessible("bandwidth_limit_rules")
+    def _bandwidth_limit_rule_list(self, **kwargs):
+        return self.native.list_bandwidth_limit_rules(**kwargs)
 
-        return network_id
+    @_obj_to_accessible("bandwidth_limit_rule")
+    def _bandwidth_limit_rule_update(self, id, **kwargs):
+        return self.native.update_bandwidth_limit_rule(
+            id, _to_body("bandwidth_limit_rule", **kwargs))
 
-    @cache
-    def router_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "routers", name) is None:
-                break
+    # ----------------------------------------------------------------------- #
 
-        return self.native.create_router(name=name,
-                                         description=("Router with name {}".
-                                                      format(name)))
+    @_obj_to_accessible("bgp_peer")
+    def _bgp_peer_create(self, **kwargs):
+        return self.native.create_bgp_peer(
+            _to_body("bgp_peer", **kwargs))
 
-    def router_update(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "routers", name) is None:
-                break
+    def _bgp_peer_delete(self, id):
+        return self.native.delete_bgp_peer(id)
 
-        router_id = self.keeper.get_random(self.cache["neutron"]["routers"])
+    @_lst_to_accessible("bgp_peers")
+    def _bgp_peer_find(self, **kwargs):
+        return self._bgp_peer_list(**kwargs)
 
-        # TO-DO: Make a normal warning logging
-        if router_id is None:
-            return
+    @_obj_to_accessible("bgp_peer")
+    def _bgp_peer_get(self, id, **kwargs):
+        return self.native.show_bgp_peer(id, **kwargs)
 
-        return self.native.update_router(router_id, name=name,
-                                         description=("Router with name {}".
-                                                      format(name)))
+    @_lst_to_accessible("bgp_peers")
+    def _bgp_peer_list(self, **kwargs):
+        return self.native.list_bgp_peers(**kwargs)
 
-    @uncache
-    def router_delete(self):
-        router_id = self.keeper.get_random(self.cache["neutron"]["routers"])
+    @_obj_to_accessible("bgp_peer")
+    def _bgp_peer_update(self, id, **kwargs):
+        return self.native.update_bgp_peer(
+            id, _to_body("bgp_peer", **kwargs))
 
-        # TO-DO: Make a normal warning logging
-        if router_id is None:
-            return
+    # ----------------------------------------------------------------------- #
 
-        self.native.delete_router(router_id)
+    @_obj_to_accessible("bgp_speaker")
+    def _bgp_speaker_create(self, **kwargs):
+        return self.native.create_bgp_speaker(
+            _to_body("bgp_speaker", **kwargs))
 
-        return router_id
+    def _bgp_speaker_delete(self, id):
+        return self.native.delete_bgp_speaker(id)
 
-    @cache
-    def port_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "ports", name) is None:
-                break
+    @_lst_to_accessible("bgp_speakers")
+    def _bgp_speaker_find(self, **kwargs):
+        return self._bgp_speaker_list(**kwargs)
 
-        network_id = self.keeper.get_random(self.cache["neutron"]["networks"])
+    @_obj_to_accessible("bgp_speaker")
+    def _bgp_speaker_get(self, id, **kwargs):
+        return self.native.show_bgp_speaker(id, **kwargs)
 
-        # TO-DO: Make a normal warning logging
-        if network_id is None:
-            return
+    @_lst_to_accessible("bgp_speakers")
+    def _bgp_speaker_list(self, **kwargs):
+        return self.native.list_bgp_speakers(**kwargs)
 
-        return self.native.create_port(name=name,
-                                       description=("Port with name {}".
-                                                    format(name)),
-                                       network_id=network_id)
+    @_obj_to_accessible("bgp_speaker")
+    def _bgp_speaker_update(self, id, **kwargs):
+        return self.native.update_bgp_speaker(
+            id, _to_body("bgp_speaker", **kwargs))
 
-    def port_update(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "ports", name) is None:
-                break
+    # ----------------------------------------------------------------------- #
 
-        port_id = self.keeper.get_random(self.cache["neutron"]["ports"])
+    @_obj_to_accessible("dscp_marking_rule")
+    def _dscp_marking_rule_create(self, **kwargs):
+        return self.native.create_dscp_marking_rule(
+            _to_body("dscp_marking_rule", **kwargs))
 
-        # TO-DO: Make a normal warning logging
-        if port_id is None:
-            return
+    def _dscp_marking_rule_delete(self, id):
+        return self.native.delete_dscp_marking_rule(id)
 
-        return self.native.update_port(port_id, name=name,
-                                       description=("Port with name {}".
-                                                    format(name)))
+    @_lst_to_accessible("dscp_marking_rules")
+    def _dscp_marking_rule_find(self, **kwargs):
+        return self._dscp_marking_rule_list(**kwargs)
 
-    @uncache
-    def port_delete(self):
-        port_id = self.keeper.get_random(self.cache["neutron"]["ports"])
+    @_obj_to_accessible("dscp_marking_rule")
+    def _dscp_marking_rule_get(self, id, **kwargs):
+        return self.native.show_dscp_marking_rule(id, **kwargs)
 
-        # TO-DO: Make a normal warning logging
-        if port_id is None:
-            return
+    @_lst_to_accessible("dscp_marking_rules")
+    def _dscp_marking_rule_list(self, **kwargs):
+        return self.native.list_dscp_marking_rules(**kwargs)
 
-        self.native.delete_port(port_id)
+    @_obj_to_accessible("dscp_marking_rule")
+    def _dscp_marking_rule_update(self, id, **kwargs):
+        return self.native.update_dscp_marking_rule(
+            id, _to_body("dscp_marking_rule", **kwargs))
 
-        return port_id
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("endpoint_group")
+    def _endpoint_group_create(self, **kwargs):
+        return self.native.create_endpoint_group(
+            _to_body("endpoint_group", **kwargs))
+
+    def _endpoint_group_delete(self, id):
+        return self.native.delete_endpoint_group(id)
+
+    @_lst_to_accessible("endpoint_groups")
+    def _endpoint_group_find(self, **kwargs):
+        return self._endpoint_group_list(**kwargs)
+
+    @_obj_to_accessible("endpoint_group")
+    def _endpoint_group_get(self, id, **kwargs):
+        return self.native.show_endpoint_group(id, **kwargs)
+
+    @_lst_to_accessible("endpoint_groups")
+    def _endpoint_group_list(self, **kwargs):
+        return self.native.list_endpoint_groups(**kwargs)
+
+    @_obj_to_accessible("endpoint_group")
+    def _endpoint_group_update(self, id, **kwargs):
+        return self.native.update_endpoint_group(
+            id, _to_body("endpoint_group", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("ext")
+    def _ext_create(self, **kwargs):
+        return self.native.create_ext(
+            _to_body("ext", **kwargs))
+
+    def _ext_delete(self, id):
+        return self.native.delete_ext(id)
+
+    @_lst_to_accessible("exts")
+    def _ext_find(self, **kwargs):
+        return self._ext_list(**kwargs)
+
+    @_obj_to_accessible("ext")
+    def _ext_get(self, id, **kwargs):
+        return self.native.show_ext(id, **kwargs)
+
+    @_lst_to_accessible("exts")
+    def _ext_list(self, **kwargs):
+        return self.native.list_exts(**kwargs)
+
+    @_obj_to_accessible("ext")
+    def _ext_update(self, id, **kwargs):
+        return self.native.update_ext(
+            id, _to_body("ext", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("firewall")
+    def _firewall_create(self, **kwargs):
+        return self.native.create_firewall(
+            _to_body("firewall", **kwargs))
+
+    def _firewall_delete(self, id):
+        return self.native.delete_firewall(id)
+
+    @_lst_to_accessible("firewalls")
+    def _firewall_find(self, **kwargs):
+        return self._firewall_list(**kwargs)
+
+    @_obj_to_accessible("firewall")
+    def _firewall_get(self, id, **kwargs):
+        return self.native.show_firewall(id, **kwargs)
+
+    @_lst_to_accessible("firewalls")
+    def _firewall_list(self, **kwargs):
+        return self.native.list_firewalls(**kwargs)
+
+    @_obj_to_accessible("firewall")
+    def _firewall_update(self, id, **kwargs):
+        return self.native.update_firewall(
+            id, _to_body("firewall", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("firewall_policy")
+    def _firewall_policy_create(self, **kwargs):
+        return self.native.create_firewall_policy(
+            _to_body("firewall_policy", **kwargs))
+
+    def _firewall_policy_delete(self, id):
+        return self.native.delete_firewall_policy(id)
+
+    @_lst_to_accessible("firewall_policys")
+    def _firewall_policy_find(self, **kwargs):
+        return self._firewall_policy_list(**kwargs)
+
+    @_obj_to_accessible("firewall_policy")
+    def _firewall_policy_get(self, id, **kwargs):
+        return self.native.show_firewall_policy(id, **kwargs)
+
+    @_lst_to_accessible("firewall_policys")
+    def _firewall_policy_list(self, **kwargs):
+        return self.native.list_firewall_policys(**kwargs)
+
+    @_obj_to_accessible("firewall_policy")
+    def _firewall_policy_update(self, id, **kwargs):
+        return self.native.update_firewall_policy(
+            id, _to_body("firewall_policy", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("firewall_rule")
+    def _firewall_rule_create(self, **kwargs):
+        return self.native.create_firewall_rule(
+            _to_body("firewall_rule", **kwargs))
+
+    def _firewall_rule_delete(self, id):
+        return self.native.delete_firewall_rule(id)
+
+    @_lst_to_accessible("firewall_rules")
+    def _firewall_rule_find(self, **kwargs):
+        return self._firewall_rule_list(**kwargs)
+
+    @_obj_to_accessible("firewall_rule")
+    def _firewall_rule_get(self, id, **kwargs):
+        return self.native.show_firewall_rule(id, **kwargs)
+
+    @_lst_to_accessible("firewall_rules")
+    def _firewall_rule_list(self, **kwargs):
+        return self.native.list_firewall_rules(**kwargs)
+
+    @_obj_to_accessible("firewall_rule")
+    def _firewall_rule_update(self, id, **kwargs):
+        return self.native.update_firewall_rule(
+            id, _to_body("firewall_rule", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("flavor")
+    def _flavor_create(self, **kwargs):
+        return self.native.create_flavor(
+            _to_body("flavor", **kwargs))
+
+    def _flavor_delete(self, id):
+        return self.native.delete_flavor(id)
+
+    @_lst_to_accessible("flavors")
+    def _flavor_find(self, **kwargs):
+        return self._flavor_list(**kwargs)
+
+    @_obj_to_accessible("flavor")
+    def _flavor_get(self, id, **kwargs):
+        return self.native.show_flavor(id, **kwargs)
+
+    @_lst_to_accessible("flavors")
+    def _flavor_list(self, **kwargs):
+        return self.native.list_flavors(**kwargs)
+
+    @_obj_to_accessible("flavor")
+    def _flavor_update(self, id, **kwargs):
+        return self.native.update_flavor(
+            id, _to_body("flavor", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("floatingip")
+    def _floatingip_create(self, **kwargs):
+        return self.native.create_floatingip(
+            _to_body("floatingip", **kwargs))
+
+    def _floatingip_delete(self, id):
+        return self.native.delete_floatingip(id)
+
+    @_lst_to_accessible("floatingips")
+    def _floatingip_find(self, **kwargs):
+        return self._floatingip_list(**kwargs)
+
+    @_obj_to_accessible("floatingip")
+    def _floatingip_get(self, id, **kwargs):
+        return self.native.show_floatingip(id, **kwargs)
+
+    @_lst_to_accessible("floatingips")
+    def _floatingip_list(self, **kwargs):
+        return self.native.list_floatingips(**kwargs)
+
+    @_obj_to_accessible("floatingip")
+    def _floatingip_update(self, id, **kwargs):
+        return self.native.update_floatingip(
+            id, _to_body("floatingip", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("gateway_device")
+    def _gateway_device_create(self, **kwargs):
+        return self.native.create_gateway_device(
+            _to_body("gateway_device", **kwargs))
+
+    def _gateway_device_delete(self, id):
+        return self.native.delete_gateway_device(id)
+
+    @_lst_to_accessible("gateway_devices")
+    def _gateway_device_find(self, **kwargs):
+        return self._gateway_device_list(**kwargs)
+
+    @_obj_to_accessible("gateway_device")
+    def _gateway_device_get(self, id, **kwargs):
+        return self.native.show_gateway_device(id, **kwargs)
+
+    @_lst_to_accessible("gateway_devices")
+    def _gateway_device_list(self, **kwargs):
+        return self.native.list_gateway_devices(**kwargs)
+
+    @_obj_to_accessible("gateway_device")
+    def _gateway_device_update(self, id, **kwargs):
+        return self.native.update_gateway_device(
+            id, _to_body("gateway_device", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("health_monitor")
+    def _health_monitor_create(self, **kwargs):
+        return self.native.create_health_monitor(
+            _to_body("health_monitor", **kwargs))
+
+    def _health_monitor_delete(self, id):
+        return self.native.delete_health_monitor(id)
+
+    @_lst_to_accessible("health_monitors")
+    def _health_monitor_find(self, **kwargs):
+        return self._health_monitor_list(**kwargs)
+
+    @_obj_to_accessible("health_monitor")
+    def _health_monitor_get(self, id, **kwargs):
+        return self.native.show_health_monitor(id, **kwargs)
+
+    @_lst_to_accessible("health_monitors")
+    def _health_monitor_list(self, **kwargs):
+        return self.native.list_health_monitors(**kwargs)
+
+    @_obj_to_accessible("health_monitor")
+    def _health_monitor_update(self, id, **kwargs):
+        return self.native.update_health_monitor(
+            id, _to_body("health_monitor", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("ikepolicy")
+    def _ikepolicy_create(self, **kwargs):
+        return self.native.create_ikepolicy(
+            _to_body("ikepolicy", **kwargs))
+
+    def _ikepolicy_delete(self, id):
+        return self.native.delete_ikepolicy(id)
+
+    @_lst_to_accessible("ikepolicys")
+    def _ikepolicy_find(self, **kwargs):
+        return self._ikepolicy_list(**kwargs)
+
+    @_obj_to_accessible("ikepolicy")
+    def _ikepolicy_get(self, id, **kwargs):
+        return self.native.show_ikepolicy(id, **kwargs)
+
+    @_lst_to_accessible("ikepolicys")
+    def _ikepolicy_list(self, **kwargs):
+        return self.native.list_ikepolicys(**kwargs)
+
+    @_obj_to_accessible("ikepolicy")
+    def _ikepolicy_update(self, id, **kwargs):
+        return self.native.update_ikepolicy(
+            id, _to_body("ikepolicy", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("ipsec_site_connection")
+    def _ipsec_site_connection_create(self, **kwargs):
+        return self.native.create_ipsec_site_connection(
+            _to_body("ipsec_site_connection", **kwargs))
+
+    def _ipsec_site_connection_delete(self, id):
+        return self.native.delete_ipsec_site_connection(id)
+
+    @_lst_to_accessible("ipsec_site_connections")
+    def _ipsec_site_connection_find(self, **kwargs):
+        return self._ipsec_site_connection_list(**kwargs)
+
+    @_obj_to_accessible("ipsec_site_connection")
+    def _ipsec_site_connection_get(self, id, **kwargs):
+        return self.native.show_ipsec_site_connection(id, **kwargs)
+
+    @_lst_to_accessible("ipsec_site_connections")
+    def _ipsec_site_connection_list(self, **kwargs):
+        return self.native.list_ipsec_site_connections(**kwargs)
+
+    @_obj_to_accessible("ipsec_site_connection")
+    def _ipsec_site_connection_update(self, id, **kwargs):
+        return self.native.update_ipsec_site_connection(
+            id, _to_body("ipsec_site_connection", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("ipsecpolicy")
+    def _ipsecpolicy_create(self, **kwargs):
+        return self.native.create_ipsecpolicy(
+            _to_body("ipsecpolicy", **kwargs))
+
+    def _ipsecpolicy_delete(self, id):
+        return self.native.delete_ipsecpolicy(id)
+
+    @_lst_to_accessible("ipsecpolicys")
+    def _ipsecpolicy_find(self, **kwargs):
+        return self._ipsecpolicy_list(**kwargs)
+
+    @_obj_to_accessible("ipsecpolicy")
+    def _ipsecpolicy_get(self, id, **kwargs):
+        return self.native.show_ipsecpolicy(id, **kwargs)
+
+    @_lst_to_accessible("ipsecpolicys")
+    def _ipsecpolicy_list(self, **kwargs):
+        return self.native.list_ipsecpolicys(**kwargs)
+
+    @_obj_to_accessible("ipsecpolicy")
+    def _ipsecpolicy_update(self, id, **kwargs):
+        return self.native.update_ipsecpolicy(
+            id, _to_body("ipsecpolicy", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("lbaas_healthmonitor")
+    def _lbaas_healthmonitor_create(self, **kwargs):
+        return self.native.create_lbaas_healthmonitor(
+            _to_body("lbaas_healthmonitor", **kwargs))
+
+    def _lbaas_healthmonitor_delete(self, id):
+        return self.native.delete_lbaas_healthmonitor(id)
+
+    @_lst_to_accessible("lbaas_healthmonitors")
+    def _lbaas_healthmonitor_find(self, **kwargs):
+        return self._lbaas_healthmonitor_list(**kwargs)
+
+    @_obj_to_accessible("lbaas_healthmonitor")
+    def _lbaas_healthmonitor_get(self, id, **kwargs):
+        return self.native.show_lbaas_healthmonitor(id, **kwargs)
+
+    @_lst_to_accessible("lbaas_healthmonitors")
+    def _lbaas_healthmonitor_list(self, **kwargs):
+        return self.native.list_lbaas_healthmonitors(**kwargs)
+
+    @_obj_to_accessible("lbaas_healthmonitor")
+    def _lbaas_healthmonitor_update(self, id, **kwargs):
+        return self.native.update_lbaas_healthmonitor(
+            id, _to_body("lbaas_healthmonitor", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("lbaas_l7policy")
+    def _lbaas_l7policy_create(self, **kwargs):
+        return self.native.create_lbaas_l7policy(
+            _to_body("lbaas_l7policy", **kwargs))
+
+    def _lbaas_l7policy_delete(self, id):
+        return self.native.delete_lbaas_l7policy(id)
+
+    @_lst_to_accessible("lbaas_l7policys")
+    def _lbaas_l7policy_find(self, **kwargs):
+        return self._lbaas_l7policy_list(**kwargs)
+
+    @_obj_to_accessible("lbaas_l7policy")
+    def _lbaas_l7policy_get(self, id, **kwargs):
+        return self.native.show_lbaas_l7policy(id, **kwargs)
+
+    @_lst_to_accessible("lbaas_l7policys")
+    def _lbaas_l7policy_list(self, **kwargs):
+        return self.native.list_lbaas_l7policys(**kwargs)
+
+    @_obj_to_accessible("lbaas_l7policy")
+    def _lbaas_l7policy_update(self, id, **kwargs):
+        return self.native.update_lbaas_l7policy(
+            id, _to_body("lbaas_l7policy", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("lbaas_l7rule")
+    def _lbaas_l7rule_create(self, **kwargs):
+        return self.native.create_lbaas_l7rule(
+            _to_body("lbaas_l7rule", **kwargs))
+
+    def _lbaas_l7rule_delete(self, id):
+        return self.native.delete_lbaas_l7rule(id)
+
+    @_lst_to_accessible("lbaas_l7rules")
+    def _lbaas_l7rule_find(self, **kwargs):
+        return self._lbaas_l7rule_list(**kwargs)
+
+    @_obj_to_accessible("lbaas_l7rule")
+    def _lbaas_l7rule_get(self, id, **kwargs):
+        return self.native.show_lbaas_l7rule(id, **kwargs)
+
+    @_lst_to_accessible("lbaas_l7rules")
+    def _lbaas_l7rule_list(self, **kwargs):
+        return self.native.list_lbaas_l7rules(**kwargs)
+
+    @_obj_to_accessible("lbaas_l7rule")
+    def _lbaas_l7rule_update(self, id, **kwargs):
+        return self.native.update_lbaas_l7rule(
+            id, _to_body("lbaas_l7rule", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("lbaas_member")
+    def _lbaas_member_create(self, **kwargs):
+        return self.native.create_lbaas_member(
+            _to_body("lbaas_member", **kwargs))
+
+    def _lbaas_member_delete(self, id):
+        return self.native.delete_lbaas_member(id)
+
+    @_lst_to_accessible("lbaas_members")
+    def _lbaas_member_find(self, **kwargs):
+        return self._lbaas_member_list(**kwargs)
+
+    @_obj_to_accessible("lbaas_member")
+    def _lbaas_member_get(self, id, **kwargs):
+        return self.native.show_lbaas_member(id, **kwargs)
+
+    @_lst_to_accessible("lbaas_members")
+    def _lbaas_member_list(self, **kwargs):
+        return self.native.list_lbaas_members(**kwargs)
+
+    @_obj_to_accessible("lbaas_member")
+    def _lbaas_member_update(self, id, **kwargs):
+        return self.native.update_lbaas_member(
+            id, _to_body("lbaas_member", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("lbaas_pool")
+    def _lbaas_pool_create(self, **kwargs):
+        return self.native.create_lbaas_pool(
+            _to_body("lbaas_pool", **kwargs))
+
+    def _lbaas_pool_delete(self, id):
+        return self.native.delete_lbaas_pool(id)
+
+    @_lst_to_accessible("lbaas_pools")
+    def _lbaas_pool_find(self, **kwargs):
+        return self._lbaas_pool_list(**kwargs)
+
+    @_obj_to_accessible("lbaas_pool")
+    def _lbaas_pool_get(self, id, **kwargs):
+        return self.native.show_lbaas_lbaas_pool(id, **kwargs)
+
+    @_lst_to_accessible("lbaas_pools")
+    def _lbaas_pool_list(self, **kwargs):
+        return self.native.list_lbaas_pools(**kwargs)
+
+    @_obj_to_accessible("lbaas_pool")
+    def _lbaas_pool_update(self, id, **kwargs):
+        return self.native.update_lbaas_pool(
+            id, _to_body("lbaas_pool", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("listener")
+    def _listener_create(self, **kwargs):
+        return self.native.create_listener(
+            _to_body("listener", **kwargs))
+
+    def _listener_delete(self, id):
+        return self.native.delete_listener(id)
+
+    @_lst_to_accessible("listeners")
+    def _listener_find(self, **kwargs):
+        return self._listener_list(**kwargs)
+
+    @_obj_to_accessible("listener")
+    def _listener_get(self, id, **kwargs):
+        return self.native.show_listener(id, **kwargs)
+
+    @_lst_to_accessible("listeners")
+    def _listener_list(self, **kwargs):
+        return self.native.list_listeners(**kwargs)
+
+    @_obj_to_accessible("listener")
+    def _listener_update(self, id, **kwargs):
+        return self.native.update_listener(
+            id, _to_body("listener", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("loadbalancer")
+    def _loadbalancer_create(self, **kwargs):
+        return self.native.create_loadbalancer(
+            _to_body("loadbalancer", **kwargs))
+
+    def _loadbalancer_delete(self, id):
+        return self.native.delete_loadbalancer(id)
+
+    @_lst_to_accessible("loadbalancers")
+    def _loadbalancer_find(self, **kwargs):
+        return self._loadbalancer_list(**kwargs)
+
+    @_obj_to_accessible("loadbalancer")
+    def _loadbalancer_get(self, id, **kwargs):
+        return self.native.show_loadbalancer(id, **kwargs)
+
+    @_lst_to_accessible("loadbalancers")
+    def _loadbalancer_list(self, **kwargs):
+        return self.native.list_loadbalancers(**kwargs)
+
+    @_obj_to_accessible("loadbalancer")
+    def _loadbalancer_update(self, id, **kwargs):
+        return self.native.update_loadbalancer(
+            id, _to_body("loadbalancer", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("member")
+    def _member_create(self, **kwargs):
+        return self.native.create_member(
+            _to_body("member", **kwargs))
+
+    def _member_delete(self, id):
+        return self.native.delete_member(id)
+
+    @_lst_to_accessible("members")
+    def _member_find(self, **kwargs):
+        return self._member_list(**kwargs)
+
+    @_obj_to_accessible("member")
+    def _member_get(self, id, **kwargs):
+        return self.native.show_member(id, **kwargs)
+
+    @_lst_to_accessible("members")
+    def _member_list(self, **kwargs):
+        return self.native.list_members(**kwargs)
+
+    @_obj_to_accessible("member")
+    def _member_update(self, id, **kwargs):
+        return self.native.update_member(
+            id, _to_body("member", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("metering_label")
+    def _metering_label_create(self, **kwargs):
+        return self.native.create_metering_label(
+            _to_body("metering_label", **kwargs))
+
+    def _metering_label_delete(self, id):
+        return self.native.delete_metering_label(id)
+
+    @_lst_to_accessible("metering_labels")
+    def _metering_label_find(self, **kwargs):
+        return self._metering_label_list(**kwargs)
+
+    @_obj_to_accessible("metering_label")
+    def _metering_label_get(self, id, **kwargs):
+        return self.native.show_metering_label(id, **kwargs)
+
+    @_lst_to_accessible("metering_labels")
+    def _metering_label_list(self, **kwargs):
+        return self.native.list_metering_labels(**kwargs)
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("metering_label_rule")
+    def _metering_label_rule_create(self, **kwargs):
+        return self.native.create_metering_label_rule(
+            _to_body("metering_label_rule", **kwargs))
+
+    def _metering_label_rule_delete(self, id):
+        return self.native.delete_metering_label_rule(id)
+
+    @_lst_to_accessible("metering_label_rules")
+    def _metering_label_rule_find(self, **kwargs):
+        return self._metering_label_rule_list(**kwargs)
+
+    @_obj_to_accessible("metering_label_rule")
+    def _metering_label_rule_get(self, id, **kwargs):
+        return self.native.show_metering_label_rule(id, **kwargs)
+
+    @_lst_to_accessible("metering_label_rules")
+    def _metering_label_rule_list(self, **kwargs):
+        return self.native.list_metering_label_rules(**kwargs)
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("network")
+    def _network_create(self, **kwargs):
+        return self.native.create_network(
+            _to_body("network", **kwargs))
+
+    def _network_delete(self, id):
+        return self.native.delete_network(id)
+
+    @_lst_to_accessible("networks")
+    def _network_find(self, **kwargs):
+        return self._network_list(**kwargs)
+
+    @_obj_to_accessible("network")
+    def _network_get(self, id, **kwargs):
+        return self.native.show_network(id, **kwargs)
+
+    @_lst_to_accessible("networks")
+    def _network_list(self, **kwargs):
+        return self.native.list_networks(**kwargs)
+
+    @_obj_to_accessible("network")
+    def _network_update(self, id, **kwargs):
+        return self.native.update_network(
+            id, _to_body("network", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("network_gateway")
+    def _network_gateway_create(self, **kwargs):
+        return self.native.create_network_gateway(
+            _to_body("network_gateway", **kwargs))
+
+    def _network_gateway_delete(self, id):
+        return self.native.delete_network_gateway(id)
+
+    @_lst_to_accessible("network_gateways")
+    def _network_gateway_find(self, **kwargs):
+        return self._network_gateway_list(**kwargs)
+
+    @_obj_to_accessible("network_gateway")
+    def _network_gateway_get(self, id, **kwargs):
+        return self.native.show_network_gateway(id, **kwargs)
+
+    @_lst_to_accessible("network_gateways")
+    def _network_gateway_list(self, **kwargs):
+        return self.native.list_network_gateways(**kwargs)
+
+    @_obj_to_accessible("network_gateway")
+    def _network_gateway_update(self, id, **kwargs):
+        return self.native.update_network_gateway(
+            id, _to_body("network_gateway", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("pool")
+    def _pool_create(self, **kwargs):
+        return self.native.create_pool(
+            _to_body("pool", **kwargs))
+
+    def _pool_delete(self, id):
+        return self.native.delete_pool(id)
+
+    @_lst_to_accessible("pools")
+    def _pool_find(self, **kwargs):
+        return self._pool_list(**kwargs)
+
+    @_obj_to_accessible("pool")
+    def _pool_get(self, id, **kwargs):
+        return self.native.show_pool(id, **kwargs)
+
+    @_lst_to_accessible("pools")
+    def _pool_list(self, **kwargs):
+        return self.native.list_pools(**kwargs)
+
+    @_obj_to_accessible("pool")
+    def _pool_update(self, id, **kwargs):
+        return self.native.update_pool(
+            id, _to_body("pool", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("port")
+    def _port_create(self, **kwargs):
+        return self.native.create_port(
+            _to_body("port", **kwargs))
+
+    def _port_delete(self, id):
+        return self.native.delete_port(id)
+
+    @_lst_to_accessible("ports")
+    def _port_find(self, **kwargs):
+        return self._port_list(**kwargs)
+
+    @_obj_to_accessible("port")
+    def _port_get(self, id, **kwargs):
+        return self.native.show_port(id, **kwargs)
+
+    @_lst_to_accessible("ports")
+    def _port_list(self, **kwargs):
+        return self.native.list_ports(**kwargs)
+
+    @_obj_to_accessible("port")
+    def _port_update(self, id, **kwargs):
+        return self.native.update_port(
+            id, _to_body("port", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("qos_policy")
+    def _qos_policy_create(self, **kwargs):
+        return self.native.create_qos_policy(
+            _to_body("qos_policy", **kwargs))
+
+    def _qos_policy_delete(self, id):
+        return self.native.delete_qos_policy(id)
+
+    @_lst_to_accessible("qos_policys")
+    def _qos_policy_find(self, **kwargs):
+        return self._qos_policy_list(**kwargs)
+
+    @_obj_to_accessible("qos_policy")
+    def _qos_policy_get(self, id, **kwargs):
+        return self.native.show_qos_policy(id, **kwargs)
+
+    @_lst_to_accessible("qos_policys")
+    def _qos_policy_list(self, **kwargs):
+        return self.native.list_qos_policys(**kwargs)
+
+    @_obj_to_accessible("qos_policy")
+    def _qos_policy_update(self, id, **kwargs):
+        return self.native.update_qos_policy(
+            id, _to_body("qos_policy", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("qos_queue")
+    def _qos_queue_create(self, **kwargs):
+        return self.native.create_qos_queue(
+            _to_body("qos_queue", **kwargs))
+
+    def _qos_queue_delete(self, id):
+        return self.native.delete_qos_queue(id)
+
+    @_lst_to_accessible("qos_queues")
+    def _qos_queue_find(self, **kwargs):
+        return self._qos_queue_list(**kwargs)
+
+    @_obj_to_accessible("qos_queue")
+    def _qos_queue_get(self, id, **kwargs):
+        return self.native.show_qos_queue(id, **kwargs)
+
+    @_lst_to_accessible("qos_queues")
+    def _qos_queue_list(self, **kwargs):
+        return self.native.list_qos_queues(**kwargs)
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("rbac_policy")
+    def _rbac_policy_create(self, **kwargs):
+        return self.native.create_rbac_policy(
+            _to_body("rbac_policy", **kwargs))
+
+    def _rbac_policy_delete(self, id):
+        return self.native.delete_rbac_policy(id)
+
+    @_lst_to_accessible("rbac_policys")
+    def _rbac_policy_find(self, **kwargs):
+        return self._rbac_policy_list(**kwargs)
+
+    @_obj_to_accessible("rbac_policy")
+    def _rbac_policy_get(self, id, **kwargs):
+        return self.native.show_rbac_policy(id, **kwargs)
+
+    @_lst_to_accessible("rbac_policys")
+    def _rbac_policy_list(self, **kwargs):
+        return self.native.list_rbac_policys(**kwargs)
+
+    @_obj_to_accessible("rbac_policy")
+    def _rbac_policy_update(self, id, **kwargs):
+        return self.native.update_rbac_policy(
+            id, _to_body("rbac_policy", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("router")
+    def _router_create(self, **kwargs):
+        return self.native.create_router(
+            _to_body("router", **kwargs))
+
+    def _router_delete(self, id):
+        return self.native.delete_router(id)
+
+    @_lst_to_accessible("routers")
+    def _router_find(self, **kwargs):
+        return self._router_list(**kwargs)
+
+    @_obj_to_accessible("router")
+    def _router_get(self, id, **kwargs):
+        return self.native.show_router(id, **kwargs)
+
+    @_lst_to_accessible("routers")
+    def _router_list(self, **kwargs):
+        return self.native.list_routers(**kwargs)
+
+    @_obj_to_accessible("router")
+    def _router_update(self, id, **kwargs):
+        return self.native.update_router(
+            id, _to_body("router", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("security_group")
+    def _security_group_create(self, **kwargs):
+        return self.native.create_security_group(
+            _to_body("security_group", **kwargs))
+
+    def _security_group_delete(self, id):
+        return self.native.delete_security_group(id)
+
+    @_lst_to_accessible("security_groups")
+    def _security_group_find(self, **kwargs):
+        return self._security_group_list(**kwargs)
+
+    @_obj_to_accessible("security_group")
+    def _security_group_get(self, id, **kwargs):
+        return self.native.show_security_group(id, **kwargs)
+
+    @_lst_to_accessible("security_groups")
+    def _security_group_list(self, **kwargs):
+        return self.native.list_security_groups(**kwargs)
+
+    @_obj_to_accessible("security_group")
+    def _security_group_update(self, id, **kwargs):
+        return self.native.update_security_group(
+            id, _to_body("security_group", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("security_group_rule")
+    def _security_group_rule_create(self, **kwargs):
+        return self.native.create_security_group_rule(
+            _to_body("security_group_rule", **kwargs))
+
+    def _security_group_rule_delete(self, id):
+        return self.native.delete_security_group_rule(id)
+
+    @_lst_to_accessible("security_group_rules")
+    def _security_group_rule_find(self, **kwargs):
+        return self._security_group_rule_list(**kwargs)
+
+    @_obj_to_accessible("security_group_rule")
+    def _security_group_rule_get(self, id, **kwargs):
+        return self.native.show_security_group_rule(id, **kwargs)
+
+    @_lst_to_accessible("security_group_rules")
+    def _security_group_rule_list(self, **kwargs):
+        return self.native.list_security_group_rules(**kwargs)
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("service_profile")
+    def _service_profile_create(self, **kwargs):
+        return self.native.create_service_profile(
+            _to_body("service_profile", **kwargs))
+
+    def _service_profile_delete(self, id):
+        return self.native.delete_service_profile(id)
+
+    @_lst_to_accessible("service_profiles")
+    def _service_profile_find(self, **kwargs):
+        return self._service_profile_list(**kwargs)
+
+    @_obj_to_accessible("service_profile")
+    def _service_profile_get(self, id, **kwargs):
+        return self.native.show_service_profile(id, **kwargs)
+
+    @_lst_to_accessible("service_profiles")
+    def _service_profile_list(self, **kwargs):
+        return self.native.list_service_profiles(**kwargs)
+
+    @_obj_to_accessible("service_profile")
+    def _service_profile_update(self, id, **kwargs):
+        return self.native.update_service_profile(
+            id, _to_body("service_profile", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("subnet")
+    def _subnet_create(self, **kwargs):
+        return self.native.create_subnet(
+            _to_body("subnet", **kwargs))
+
+    def _subnet_delete(self, id):
+        return self.native.delete_subnet(id)
+
+    @_lst_to_accessible("subnets")
+    def _subnet_find(self, **kwargs):
+        return self._subnet_list(**kwargs)
+
+    @_obj_to_accessible("subnet")
+    def _subnet_get(self, id, **kwargs):
+        return self.native.show_subnet(id, **kwargs)
+
+    @_lst_to_accessible("subnets")
+    def _subnet_list(self, **kwargs):
+        return self.native.list_subnets(**kwargs)
+
+    @_obj_to_accessible("subnet")
+    def _subnet_update(self, id, **kwargs):
+        return self.native.update_subnet(
+            id, _to_body("subnet", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("subnetpool")
+    def _subnetpool_create(self, **kwargs):
+        return self.native.create_subnetpool(
+            _to_body("subnetpool", **kwargs))
+
+    def _subnetpool_delete(self, id):
+        return self.native.delete_subnetpool(id)
+
+    @_lst_to_accessible("subnetpools")
+    def _subnetpool_find(self, **kwargs):
+        return self._subnetpool_list(**kwargs)
+
+    @_obj_to_accessible("subnetpool")
+    def _subnetpool_get(self, id, **kwargs):
+        return self.native.show_subnetpool(id, **kwargs)
+
+    @_lst_to_accessible("subnetpools")
+    def _subnetpool_list(self, **kwargs):
+        return self.native.list_subnetpools(**kwargs)
+
+    @_obj_to_accessible("subnetpool")
+    def _subnetpool_update(self, id, **kwargs):
+        return self.native.update_subnetpool(
+            id, _to_body("subnetpool", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("trunk")
+    def _trunk_create(self, **kwargs):
+        return self.native.create_trunk(
+            _to_body("trunk", **kwargs))
+
+    def _trunk_delete(self, id):
+        return self.native.delete_trunk(id)
+
+    @_lst_to_accessible("trunks")
+    def _trunk_find(self, **kwargs):
+        return self._trunk_list(**kwargs)
+
+    @_obj_to_accessible("trunk")
+    def _trunk_get(self, id, **kwargs):
+        return self.native.show_trunk(id, **kwargs)
+
+    @_lst_to_accessible("trunks")
+    def _trunk_list(self, **kwargs):
+        return self.native.list_trunks(**kwargs)
+
+    @_obj_to_accessible("trunk")
+    def _trunk_update(self, id, **kwargs):
+        return self.native.update_trunk(
+            id, _to_body("trunk", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("vip")
+    def _vip_create(self, **kwargs):
+        return self.native.create_vip(
+            _to_body("vip", **kwargs))
+
+    def _vip_delete(self, id):
+        return self.native.delete_vip(id)
+
+    @_lst_to_accessible("vips")
+    def _vip_find(self, **kwargs):
+        return self._vip_list(**kwargs)
+
+    @_obj_to_accessible("vip")
+    def _vip_get(self, id, **kwargs):
+        return self.native.show_vip(id, **kwargs)
+
+    @_lst_to_accessible("vips")
+    def _vip_list(self, **kwargs):
+        return self.native.list_vips(**kwargs)
+
+    @_obj_to_accessible("vip")
+    def _vip_update(self, id, **kwargs):
+        return self.native.update_vip(
+            id, _to_body("vip", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_obj_to_accessible("vpnservice")
+    def _vpnservice_create(self, **kwargs):
+        return self.native.create_vpnservice(
+            _to_body("vpnservice", **kwargs))
+
+    def _vpnservice_delete(self, id):
+        return self.native.delete_vpnservice(id)
+
+    @_lst_to_accessible("vpnservices")
+    def _vpnservice_find(self, **kwargs):
+        return self._vpnservice_list(**kwargs)
+
+    @_obj_to_accessible("vpnservice")
+    def _vpnservice_get(self, id, **kwargs):
+        return self.native.show_vpnservice(id, **kwargs)
+
+    @_lst_to_accessible("vpnservices")
+    def _vpnservice_list(self, **kwargs):
+        return self.native.list_vpnservices(**kwargs)
+
+    @_obj_to_accessible("vpnservice")
+    def _vpnservice_update(self, id, **kwargs):
+        return self.native.update_vpnservice(
+            id, _to_body("vpnservice", **kwargs))
 
 
 class Cinder(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Cinder` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.cache = cache
+    def __init__(self, client):
         self.native = client
-        self.faker = faker
-        self.keeper = keeper
 
-        self.volumes = lambda: None
-
-        self.volumes.get = self.native.volumes.get
-        self.volumes.find = self.native.volumes.find
-        self.volumes.list = self.native.volumes.list
-
-        self.volumes.create = self.volume_create
-        self.volumes.update = self.volume_update
-        self.volumes.extend = self.volume_extend
-        self.volumes.attach = self.volume_attach
-        self.volumes.detach = self.volume_detach
-        self.volumes.delete = self.volume_delete
-
-    @cache
-    def volume_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("cinder", "volumes", name) is None:
-                break
-        volume_sizes = [1, 2, 5, 10, 20, 40, 50]
-        volume = self.native.volumes.create(name=name,
-                                            size=random.choice(volume_sizes),
-                                            description=("Volume with name {}".
-                                                         format(name)))
-        self.native.volumes.reset_state(volume, "available", "detached")
-
-        return volume
-
-    def volume_update(self):
-        while True:
-            name = self.faker.name()
-            if self.keeper.get_by_name("cinder", "volumes", name) is None:
-                break
-
-        volume_id = self.keeper.get_random(self.cache["cinder"]["volumes"])
-
-        # TO-DO: Make a normal warning logging
-        if volume_id is None:
-            return
-
-        volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
-
-        return self.native.volumes.update(volume=volume,
-                                          name=name,
-                                          description=("Volume with name {}".
-                                                       format(name)))
-
-    def volume_extend(self):
-        volume_id = self.keeper.get_random(self.cache["cinder"]["volumes"])
-
-        # TO-DO: Make a normal warning logging
-        if volume_id is None:
-            return
-
-        volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
-        add_size = random.randint(1, 10)
-
-        return self.native.volumes.extend(volume=volume,
-                                          new_size=volume.size + add_size)
-
-    def volume_attach(self):
-        volume_id = self.keeper.get_unused(self.cache["cinder"]["volumes"])
-
-        # TO-DO: Make a normal warning logging
-        if volume_id is None:
-            return
-
-        self.cache["cinder"]["volumes"][volume_id] = True
-        volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
-        instance_id = self.keeper.get_random(self.cache["nova"]["servers"])
-
-        # TO-DO: Make a normal warning logging
-        if instance_id is None:
-            return
-
-        return self.native.volumes.attach(volume, instance_id, volume.name)
-
-    def volume_detach(self):
-        volume_id = self.keeper.get_used(self.cache["cinder"]["volumes"])
-
-        # TO-DO: Make a normal warning logging
-        if volume_id is None:
-            return
-
-        self.cache["cinder"]["volumes"][volume_id] = False
-        volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
-
-        return self.native.volumes.detach(volume)
-
-    @uncache
-    def volume_delete(self):
-        volume_id = self.keeper.get_random(self.cache["cinder"]["volumes"])
-
-        # TO-DO: Make a normal warning logging
-        if volume_id is None:
-            return
-
-        volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
-        self.native.volumes.delete(volume)
-
-        return volume_id
+        for name in dir(self.native):
+            if not name.startswith("__"):
+                value = getattr(self.native, name)
+                setattr(self, name, value)
 
 
 class Nova(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Nova` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.cache = cache
+    def __init__(self, client):
         self.native = client
-        self.faker = faker
-        self.keeper = keeper
 
-        self.flavors = lambda: None
-        self.flavors.get = self.native.flavors.get
-        self.flavors.find = self.native.flavors.find
-        self.flavors.create = self.flavor_create
-        self.flavors.delete = self.flavor_delete
-
-        self.security_groups = lambda: None
-        self.security_groups.get = self.native.security_groups.get
-        self.security_groups.find = self.native.security_groups.find
-
-        self.servers = lambda: None
-        self.servers.get = self.native.servers.get
-        self.servers.find = self.native.servers.find
-        self.servers.create = self.server_create
-        self.servers.update = self.server_update
-
-    @cache
-    def flavor_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("nova", "flavors", name) is None:
-                break
-        return self.native.flavors.create(name, 1, 1, 1)
-
-    @uncache
-    def flavor_delete(self):
-        pass
-
-    @cache
-    def server_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("nova", "servers", name) is None:
-                break
-
-        image_id = self.keeper.get_random(self.cache["glance"]["images"])
-        image = self.keeper.get_by_id("glance", "images", image_id)
-        flavor_id = self.keeper.get_random(self.cache["nova"]["flavors"])
-        flavor = self.keeper.get_by_id("nova", "flavors", flavor_id)
-        if "security_groups" in self.cache["nova"]:
-            # FIXME (mivanov) Fix security groups assigning ASAP
-            security_group = None
-            # security_group_id = self.keeper.get_random(
-            #    self.cache["nova"]["security_groups"])
-            # security_group = self.keeper.get_by_id(
-            #    "nova", "security_groups", security_group_id)
-        else:
-            security_group = None
-
-        return self.native.servers.create(name=name, image=image,
-                                          flavor=flavor,
-                                          security_groups=security_group)
-
-    def server_update(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("nova", "servers", name) is None:
-                break
-
-        server_id = self.keeper.get_random(
-            self.cache["nova"]["servers"])
-        return self.native.servers.update(server=server_id, name=name)
+        for name in dir(self.native):
+            if not name.startswith("__"):
+                value = getattr(self.native, name)
+                setattr(self, name, value)
 
 
 class Glance(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Glance` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.cache = cache
+    def __init__(self, client):
         self.native = client
-        self.faker = faker
-        self.keeper = keeper
 
-        self.images = lambda: None
-        self.images.get = self.native.images.get
-        self.images.list = self.native.images.list
+        for name in dir(self.native):
+            if not name.startswith("__"):
+                value = getattr(self.native, name)
+                setattr(self, name, value)
         self.images.find = self.find
-        self.images.create = self.image_create
-        self.images.update = self.image_update
 
     def find(self, **kwargs):
         return list(self.native.images.list(filters=kwargs))[0]
-
-    @cache
-    def image_create(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("glance", "images", name) is None:
-                break
-        image = self.native.images.create(name=name, data=name,
-                                          disk_format='raw',
-                                          container_format='bare',
-                                          visibility='public')
-        self.native.images.upload(image.id, '')
-        return image
-
-    def image_update(self):
-        while True:
-            name = self.faker.word()
-            if self.keeper.get_by_name("glance", "images", name) is None:
-                break
-        image_id = self.keeper.get_random(self.cache["glance"]["images"])
-        image = self.native.images.update(image_id, name=name)
-        return image
