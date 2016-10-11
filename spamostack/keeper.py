@@ -134,6 +134,56 @@ class Keeper(object):
 
         return random.choice(resource.keys())
 
+    def get(self, client_name, resource_name, param=None, func=None, **kwargs):
+        """
+        Get a resource.
+        If `param` and `func` is not `None` then `param` gets retrieve
+        with **kwargs as arguments then passes result to the `func`
+        as an argument and then returns it as result.
+
+        If `func` is `None` then `param` gets retrieve with **kwargs and
+        returns it as result.
+
+        If `param` is `None` then returns a random resource.
+
+        @param client_name: Name of the client
+        @type client_name: `str`
+
+        @param resource_name: Name of the resource under specific component
+        @type resource_name: `str`
+
+        @param param: A parameter which would be examined
+        @type param: `str`
+
+        @param func: A method which would be used to examine a parameter
+        @type func: `method`
+        """
+
+        client = getattr(self.client_factory, client_name)()
+        resource = getattr(client, resource_name)
+        result = None
+
+        if func is not None and param is not None:
+            try:
+                for el in list(resource.list()):
+                    probe = getattr(el, param)(**kwargs)
+                    if func(probe):
+                        result = probe
+                        break
+            except Exception:
+                pass
+        elif func is None and param is not None:
+            try:
+                result = getattr(resource, param)(**kwargs)
+            except Exception:
+                pass
+        elif param is None:
+            possibilities = list(resource.list())
+            if len(possibilities) > 0 :
+                result = random.choice(possibilities)
+
+        return result
+
     def clean(self, component_names):
         """Delete all the resources for specific component
 
@@ -150,8 +200,12 @@ class Keeper(object):
                 resource_obj = getattr(client.native, resource_name)
                 for id in resource.keys():
                     if id != admin_user_id:
-                        resource_obj.delete(self.get_by_id(client_name,
-                                                           resource_name, id))
+                        try:
+                            resource_obj.delete(self.get_by_id(client_name,
+                                                               resource_name, id))
+                        except Exception as exc:
+                            print resource_obj, resource_name
+                            raise exc
                     del self.cache[client_name][resource_name][id]
             if client_name == "keystone":
                 for key in self.cache["users"].keys():
