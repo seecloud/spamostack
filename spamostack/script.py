@@ -232,3 +232,47 @@ Client.groups.get(self, group)
 Client.groups.list(self, user, domain)
 Client.groups.delete(self, group)
 '''
+
+
+                '''
+                native_action = action
+                if action == "get":
+                    native_action = "show"
+                elif action == "list":
+                    native_component = "networks"
+                elif action == "find":
+                    native_action = "list"
+                else:
+                    native_action = action
+                    native_component = component
+
+                component_method = getattr(
+                                    self.native,
+                                    "{0}_{1}".format(native_action,
+                                                     native_component))
+                # define methods
+                if action in ["get"]:
+                    setattr(self, "_{0}_{1}".format(component, action),
+                            self._obj_to_accessible(component_method,
+                                                    component + "s"))
+                elif action in ["list", "find"]:
+                    setattr(self, "_{0}_{1}".format(component, action),
+                            self._lst_to_accessible(component_method,
+                                                    component + "s"))
+                elif action in ["create"]:
+                    func = lambda **kwargs: component_method(
+                                                self._to_body(component,
+                                                              **kwargs))
+                    setattr(self, "_{0}_{1}".format(component, action),
+                            self._obj_to_accessible(func, component))
+                elif action in ["update"]:
+                    func = lambda id, **kwargs: component_method(
+                                                    id,
+                                                    self._to_body(component,
+                                                                  **kwargs))
+                    setattr(self, "_{0}_{1}".format(component, action),
+                            self._obj_to_accessible(func, component))
+                elif action in ["delete"]:
+                    setattr(self, "_{0}_{1}".format(component, action),
+                            lambda id: component_method(id))
+                '''

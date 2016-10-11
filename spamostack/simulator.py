@@ -67,7 +67,7 @@ class Simulator(object):
 
         for pipe_client, pipe in self.pipeline.iteritems():
             client = getattr(self.client_factory, pipe_client)()
-            loop(pipe_client, pipe, client)
+            loop(pipe_client, pipe, client.spam)
 
     def rotate(self, func, period, number, count):
         """Execute method specific number of times
