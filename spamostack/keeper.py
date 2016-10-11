@@ -202,9 +202,9 @@ class Keeper(object):
                     if id != admin_user_id:
                         try:
                             resource_obj.delete(self.get_by_id(client_name,
-                                                               resource_name, id))
+                                                               resource_name,
+                                                               id))
                         except Exception as exc:
-                            print resource_obj, resource_name
                             raise exc
                     del self.cache[client_name][resource_name][id]
             if client_name == "keystone":

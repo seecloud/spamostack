@@ -164,7 +164,7 @@ class SpamFactory(client_factory.ClientFactory, object):
         """Create Glance client."""
 
         return SpamGlance(self.cache, self.client_manager.image, self.faker,
-                      self.keeper)
+                          self.keeper)
 
 
 class SpamKeystone(client_factory.Keystone, object):
