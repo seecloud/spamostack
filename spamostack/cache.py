@@ -116,19 +116,19 @@ class Cache(collections.MutableMapping, object):
         self.cache["users"] = LevelCache(
             os.path.join(self.path, "users"))
 
-        admin_user = {"os_username":
+        admin_user = {"username":
                       os.environ['OS_USERNAME'],
-                      "os_password":
+                      "password":
                       os.environ['OS_PASSWORD'],
-                      "os_project_name":
+                      "project_name":
                       os.environ['OS_PROJECT_NAME'],
-                      "os_project_domain_id":
+                      "project_domain_id":
                       os.environ['OS_PROJECT_DOMAIN_ID'],
-                      "os_user_domain_id":
+                      "user_domain_id":
                       os.environ['OS_USER_DOMAIN_ID']}
         self.cache["users"][uname] = admin_user
 
-        self.cache["api"] = {"os_auth_url":
+        self.cache["api"] = {"auth_url":
                              os.environ['OS_AUTH_URL'],
                              "os_compute_api_version":
                              os.environ['OS_COMPUTE_API_VERSION'],
