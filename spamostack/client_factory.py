@@ -169,7 +169,7 @@ class Neutron(object):
     @_obj_to_accessible("address_scope")
     def _address_scope_create(self, **kwargs):
         return self.native.create_address_scope(
-                _to_body("address_scope", **kwargs))
+            _to_body("address_scope", **kwargs))
 
     def _address_scope_delete(self, id):
         return self.native.delete_address_scope(id)
@@ -189,13 +189,14 @@ class Neutron(object):
     @_obj_to_accessible("address_scope")
     def _address_scope_update(self, id, **kwargs):
         return self.native.update_address_scope(
-                id, _to_body("address_scope", **kwargs))
+            id, _to_body("address_scope", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("bandwidth_limit_rule")
     def _bandwidth_limit_rule_create(self, **kwargs):
         return self.native.create_bandwidth_limit_rule(
-                _to_body("bandwidth_limit_rule", **kwargs))
+            _to_body("bandwidth_limit_rule", **kwargs))
 
     def _bandwidth_limit_rule_delete(self, id):
         return self.native.delete_bandwidth_limit_rule(id)
@@ -215,13 +216,14 @@ class Neutron(object):
     @_obj_to_accessible("bandwidth_limit_rule")
     def _bandwidth_limit_rule_update(self, id, **kwargs):
         return self.native.update_bandwidth_limit_rule(
-                id, _to_body("bandwidth_limit_rule", **kwargs))
+            id, _to_body("bandwidth_limit_rule", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("bgp_peer")
     def _bgp_peer_create(self, **kwargs):
         return self.native.create_bgp_peer(
-                _to_body("bgp_peer", **kwargs))
+            _to_body("bgp_peer", **kwargs))
 
     def _bgp_peer_delete(self, id):
         return self.native.delete_bgp_peer(id)
@@ -241,13 +243,14 @@ class Neutron(object):
     @_obj_to_accessible("bgp_peer")
     def _bgp_peer_update(self, id, **kwargs):
         return self.native.update_bgp_peer(
-                id, _to_body("bgp_peer", **kwargs))
+            id, _to_body("bgp_peer", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("bgp_speaker")
     def _bgp_speaker_create(self, **kwargs):
         return self.native.create_bgp_speaker(
-                _to_body("bgp_speaker", **kwargs))
+            _to_body("bgp_speaker", **kwargs))
 
     def _bgp_speaker_delete(self, id):
         return self.native.delete_bgp_speaker(id)
@@ -267,13 +270,14 @@ class Neutron(object):
     @_obj_to_accessible("bgp_speaker")
     def _bgp_speaker_update(self, id, **kwargs):
         return self.native.update_bgp_speaker(
-                id, _to_body("bgp_speaker", **kwargs))
+            id, _to_body("bgp_speaker", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("dscp_marking_rule")
     def _dscp_marking_rule_create(self, **kwargs):
         return self.native.create_dscp_marking_rule(
-                _to_body("dscp_marking_rule", **kwargs))
+            _to_body("dscp_marking_rule", **kwargs))
 
     def _dscp_marking_rule_delete(self, id):
         return self.native.delete_dscp_marking_rule(id)
@@ -293,13 +297,14 @@ class Neutron(object):
     @_obj_to_accessible("dscp_marking_rule")
     def _dscp_marking_rule_update(self, id, **kwargs):
         return self.native.update_dscp_marking_rule(
-                id, _to_body("dscp_marking_rule", **kwargs))
+            id, _to_body("dscp_marking_rule", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("endpoint_group")
     def _endpoint_group_create(self, **kwargs):
         return self.native.create_endpoint_group(
-                _to_body("endpoint_group", **kwargs))
+            _to_body("endpoint_group", **kwargs))
 
     def _endpoint_group_delete(self, id):
         return self.native.delete_endpoint_group(id)
@@ -319,13 +324,14 @@ class Neutron(object):
     @_obj_to_accessible("endpoint_group")
     def _endpoint_group_update(self, id, **kwargs):
         return self.native.update_endpoint_group(
-                id, _to_body("endpoint_group", **kwargs))
+            id, _to_body("endpoint_group", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("ext")
     def _ext_create(self, **kwargs):
         return self.native.create_ext(
-                _to_body("ext", **kwargs))
+            _to_body("ext", **kwargs))
 
     def _ext_delete(self, id):
         return self.native.delete_ext(id)
@@ -345,13 +351,14 @@ class Neutron(object):
     @_obj_to_accessible("ext")
     def _ext_update(self, id, **kwargs):
         return self.native.update_ext(
-                id, _to_body("ext", **kwargs))
+            id, _to_body("ext", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("firewall")
     def _firewall_create(self, **kwargs):
         return self.native.create_firewall(
-                _to_body("firewall", **kwargs))
+            _to_body("firewall", **kwargs))
 
     def _firewall_delete(self, id):
         return self.native.delete_firewall(id)
@@ -371,13 +378,14 @@ class Neutron(object):
     @_obj_to_accessible("firewall")
     def _firewall_update(self, id, **kwargs):
         return self.native.update_firewall(
-                id, _to_body("firewall", **kwargs))
+            id, _to_body("firewall", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("firewall_policy")
     def _firewall_policy_create(self, **kwargs):
         return self.native.create_firewall_policy(
-                _to_body("firewall_policy", **kwargs))
+            _to_body("firewall_policy", **kwargs))
 
     def _firewall_policy_delete(self, id):
         return self.native.delete_firewall_policy(id)
@@ -397,13 +405,14 @@ class Neutron(object):
     @_obj_to_accessible("firewall_policy")
     def _firewall_policy_update(self, id, **kwargs):
         return self.native.update_firewall_policy(
-                id, _to_body("firewall_policy", **kwargs))
+            id, _to_body("firewall_policy", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("firewall_rule")
     def _firewall_rule_create(self, **kwargs):
         return self.native.create_firewall_rule(
-                _to_body("firewall_rule", **kwargs))
+            _to_body("firewall_rule", **kwargs))
 
     def _firewall_rule_delete(self, id):
         return self.native.delete_firewall_rule(id)
@@ -423,13 +432,14 @@ class Neutron(object):
     @_obj_to_accessible("firewall_rule")
     def _firewall_rule_update(self, id, **kwargs):
         return self.native.update_firewall_rule(
-                id, _to_body("firewall_rule", **kwargs))
+            id, _to_body("firewall_rule", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("flavor")
     def _flavor_create(self, **kwargs):
         return self.native.create_flavor(
-                _to_body("flavor", **kwargs))
+            _to_body("flavor", **kwargs))
 
     def _flavor_delete(self, id):
         return self.native.delete_flavor(id)
@@ -449,13 +459,14 @@ class Neutron(object):
     @_obj_to_accessible("flavor")
     def _flavor_update(self, id, **kwargs):
         return self.native.update_flavor(
-                id, _to_body("flavor", **kwargs))
+            id, _to_body("flavor", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("floatingip")
     def _floatingip_create(self, **kwargs):
         return self.native.create_floatingip(
-                _to_body("floatingip", **kwargs))
+            _to_body("floatingip", **kwargs))
 
     def _floatingip_delete(self, id):
         return self.native.delete_floatingip(id)
@@ -475,13 +486,14 @@ class Neutron(object):
     @_obj_to_accessible("floatingip")
     def _floatingip_update(self, id, **kwargs):
         return self.native.update_floatingip(
-                id, _to_body("floatingip", **kwargs))
+            id, _to_body("floatingip", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("gateway_device")
     def _gateway_device_create(self, **kwargs):
         return self.native.create_gateway_device(
-                _to_body("gateway_device", **kwargs))
+            _to_body("gateway_device", **kwargs))
 
     def _gateway_device_delete(self, id):
         return self.native.delete_gateway_device(id)
@@ -501,13 +513,14 @@ class Neutron(object):
     @_obj_to_accessible("gateway_device")
     def _gateway_device_update(self, id, **kwargs):
         return self.native.update_gateway_device(
-                id, _to_body("gateway_device", **kwargs))
+            id, _to_body("gateway_device", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("health_monitor")
     def _health_monitor_create(self, **kwargs):
         return self.native.create_health_monitor(
-                _to_body("health_monitor", **kwargs))
+            _to_body("health_monitor", **kwargs))
 
     def _health_monitor_delete(self, id):
         return self.native.delete_health_monitor(id)
@@ -527,13 +540,14 @@ class Neutron(object):
     @_obj_to_accessible("health_monitor")
     def _health_monitor_update(self, id, **kwargs):
         return self.native.update_health_monitor(
-                id, _to_body("health_monitor", **kwargs))
+            id, _to_body("health_monitor", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("ikepolicy")
     def _ikepolicy_create(self, **kwargs):
         return self.native.create_ikepolicy(
-                _to_body("ikepolicy", **kwargs))
+            _to_body("ikepolicy", **kwargs))
 
     def _ikepolicy_delete(self, id):
         return self.native.delete_ikepolicy(id)
@@ -553,13 +567,14 @@ class Neutron(object):
     @_obj_to_accessible("ikepolicy")
     def _ikepolicy_update(self, id, **kwargs):
         return self.native.update_ikepolicy(
-                id, _to_body("ikepolicy", **kwargs))
+            id, _to_body("ikepolicy", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("ipsec_site_connection")
     def _ipsec_site_connection_create(self, **kwargs):
         return self.native.create_ipsec_site_connection(
-                _to_body("ipsec_site_connection", **kwargs))
+            _to_body("ipsec_site_connection", **kwargs))
 
     def _ipsec_site_connection_delete(self, id):
        return self.native.delete_ipsec_site_connection(id)
@@ -579,13 +594,14 @@ class Neutron(object):
     @_obj_to_accessible("ipsec_site_connection")
     def _ipsec_site_connection_update(self, id, **kwargs):
         return self.native.update_ipsec_site_connection(
-                id, _to_body("ipsec_site_connection", **kwargs))
+            id, _to_body("ipsec_site_connection", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("ipsecpolicy")
     def _ipsecpolicy_create(self, **kwargs):
         return self.native.create_ipsecpolicy(
-                _to_body("ipsecpolicy", **kwargs))
+            _to_body("ipsecpolicy", **kwargs))
 
     def _ipsecpolicy_delete(self, id):
        return self.native.delete_ipsecpolicy(id)
@@ -605,13 +621,14 @@ class Neutron(object):
     @_obj_to_accessible("ipsecpolicy")
     def _ipsecpolicy_update(self, id, **kwargs):
         return self.native.update_ipsecpolicy(
-                id, _to_body("ipsecpolicy", **kwargs))
+            id, _to_body("ipsecpolicy", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("lbaas_healthmonitor")
     def _lbaas_healthmonitor_create(self, **kwargs):
         return self.native.create_lbaas_healthmonitor(
-                _to_body("lbaas_healthmonitor", **kwargs))
+            _to_body("lbaas_healthmonitor", **kwargs))
 
     def _lbaas_healthmonitor_delete(self, id):
        return self.native.delete_lbaas_healthmonitor(id)
@@ -631,13 +648,14 @@ class Neutron(object):
     @_obj_to_accessible("lbaas_healthmonitor")
     def _lbaas_healthmonitor_update(self, id, **kwargs):
         return self.native.update_lbaas_healthmonitor(
-                id, _to_body("lbaas_healthmonitor", **kwargs))
+            id, _to_body("lbaas_healthmonitor", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("lbaas_l7policy")
     def _lbaas_l7policy_create(self, **kwargs):
         return self.native.create_lbaas_l7policy(
-                _to_body("lbaas_l7policy", **kwargs))
+            _to_body("lbaas_l7policy", **kwargs))
 
     def _lbaas_l7policy_delete(self, id):
        return self.native.delete_lbaas_l7policy(id)
@@ -657,13 +675,14 @@ class Neutron(object):
     @_obj_to_accessible("lbaas_l7policy")
     def _lbaas_l7policy_update(self, id, **kwargs):
         return self.native.update_lbaas_l7policy(
-                id, _to_body("lbaas_l7policy", **kwargs))
+            id, _to_body("lbaas_l7policy", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("lbaas_l7rule")
     def _lbaas_l7rule_create(self, **kwargs):
         return self.native.create_lbaas_l7rule(
-                _to_body("lbaas_l7rule", **kwargs))
+            _to_body("lbaas_l7rule", **kwargs))
 
     def _lbaas_l7rule_delete(self, id):
        return self.native.delete_lbaas_l7rule(id)
@@ -683,13 +702,14 @@ class Neutron(object):
     @_obj_to_accessible("lbaas_l7rule")
     def _lbaas_l7rule_update(self, id, **kwargs):
         return self.native.update_lbaas_l7rule(
-                id, _to_body("lbaas_l7rule", **kwargs))
+            id, _to_body("lbaas_l7rule", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("lbaas_member")
     def _lbaas_member_create(self, **kwargs):
         return self.native.create_lbaas_member(
-                _to_body("lbaas_member", **kwargs))
+            _to_body("lbaas_member", **kwargs))
 
     def _lbaas_member_delete(self, id):
        return self.native.delete_lbaas_member(id)
@@ -709,13 +729,14 @@ class Neutron(object):
     @_obj_to_accessible("lbaas_member")
     def _lbaas_member_update(self, id, **kwargs):
         return self.native.update_lbaas_member(
-                id, _to_body("lbaas_member", **kwargs))
+            id, _to_body("lbaas_member", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("lbaas_pool")
     def _lbaas_pool_create(self, **kwargs):
         return self.native.create_lbaas_pool(
-                _to_body("lbaas_pool", **kwargs))
+            _to_body("lbaas_pool", **kwargs))
 
     def _lbaas_pool_delete(self, id):
        return self.native.delete_lbaas_pool(id)
@@ -735,13 +756,14 @@ class Neutron(object):
     @_obj_to_accessible("lbaas_pool")
     def _lbaas_pool_update(self, id, **kwargs):
         return self.native.update_lbaas_pool(
-                id, _to_body("lbaas_pool", **kwargs))
+            id, _to_body("lbaas_pool", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("listener")
     def _listener_create(self, **kwargs):
         return self.native.create_listener(
-                _to_body("listener", **kwargs))
+            _to_body("listener", **kwargs))
 
     def _listener_delete(self, id):
        return self.native.delete_listener(id)
@@ -761,13 +783,14 @@ class Neutron(object):
     @_obj_to_accessible("listener")
     def _listener_update(self, id, **kwargs):
         return self.native.update_listener(
-                id, _to_body("listener", **kwargs))
+            id, _to_body("listener", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("loadbalancer")
     def _loadbalancer_create(self, **kwargs):
         return self.native.create_loadbalancer(
-                _to_body("loadbalancer", **kwargs))
+            _to_body("loadbalancer", **kwargs))
 
     def _loadbalancer_delete(self, id):
        return self.native.delete_loadbalancer(id)
@@ -787,13 +810,14 @@ class Neutron(object):
     @_obj_to_accessible("loadbalancer")
     def _loadbalancer_update(self, id, **kwargs):
         return self.native.update_loadbalancer(
-                id, _to_body("loadbalancer", **kwargs))
+            id, _to_body("loadbalancer", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("member")
     def _member_create(self, **kwargs):
         return self.native.create_member(
-                _to_body("member", **kwargs))
+            _to_body("member", **kwargs))
 
     def _member_delete(self, id):
        return self.native.delete_member(id)
@@ -813,13 +837,14 @@ class Neutron(object):
     @_obj_to_accessible("member")
     def _member_update(self, id, **kwargs):
         return self.native.update_member(
-                id, _to_body("member", **kwargs))
+            id, _to_body("member", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("metering_label")
     def _metering_label_create(self, **kwargs):
         return self.native.create_metering_label(
-                _to_body("metering_label", **kwargs))
+            _to_body("metering_label", **kwargs))
 
     def _metering_label_delete(self, id):
        return self.native.delete_metering_label(id)
@@ -836,11 +861,12 @@ class Neutron(object):
     def _metering_label_list(self, **kwargs):
         return self.native.list_metering_labels(**kwargs)
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("metering_label_rule")
     def _metering_label_rule_create(self, **kwargs):
         return self.native.create_metering_label_rule(
-                _to_body("metering_label_rule", **kwargs))
+            _to_body("metering_label_rule", **kwargs))
 
     def _metering_label_rule_delete(self, id):
        return self.native.delete_metering_label_rule(id)
@@ -857,11 +883,12 @@ class Neutron(object):
     def _metering_label_rule_list(self, **kwargs):
         return self.native.list_metering_label_rules(**kwargs)
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("network")
     def _network_create(self, **kwargs):
         return self.native.create_network(
-                _to_body("network", **kwargs))
+            _to_body("network", **kwargs))
 
     def _network_delete(self, id):
         return self.native.delete_network(id)
@@ -881,13 +908,14 @@ class Neutron(object):
     @_obj_to_accessible("network")
     def _network_update(self, id, **kwargs):
         return self.native.update_network(
-                id, _to_body("network", **kwargs))
+            id, _to_body("network", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("network_gateway")
     def _network_gateway_create(self, **kwargs):
         return self.native.create_network_gateway(
-                _to_body("network_gateway", **kwargs))
+            _to_body("network_gateway", **kwargs))
 
     def _network_gateway_delete(self, id):
        return self.native.delete_network_gateway(id)
@@ -907,13 +935,14 @@ class Neutron(object):
     @_obj_to_accessible("network_gateway")
     def _network_gateway_update(self, id, **kwargs):
         return self.native.update_network_gateway(
-                id, _to_body("network_gateway", **kwargs))
+            id, _to_body("network_gateway", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("pool")
     def _pool_create(self, **kwargs):
         return self.native.create_pool(
-                _to_body("pool", **kwargs))
+            _to_body("pool", **kwargs))
 
     def _pool_delete(self, id):
        return self.native.delete_pool(id)
@@ -933,13 +962,14 @@ class Neutron(object):
     @_obj_to_accessible("pool")
     def _pool_update(self, id, **kwargs):
         return self.native.update_pool(
-                id, _to_body("pool", **kwargs))
+            id, _to_body("pool", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("port")
     def _port_create(self, **kwargs):
         return self.native.create_port(
-                _to_body("port", **kwargs))
+            _to_body("port", **kwargs))
 
     def _port_delete(self, id):
        return self.native.delete_port(id)
@@ -959,13 +989,14 @@ class Neutron(object):
     @_obj_to_accessible("port")
     def _port_update(self, id, **kwargs):
         return self.native.update_port(
-                id, _to_body("port", **kwargs))
+            id, _to_body("port", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("qos_policy")
     def _qos_policy_create(self, **kwargs):
         return self.native.create_qos_policy(
-                _to_body("qos_policy", **kwargs))
+            _to_body("qos_policy", **kwargs))
 
     def _qos_policy_delete(self, id):
        return self.native.delete_qos_policy(id)
@@ -985,13 +1016,14 @@ class Neutron(object):
     @_obj_to_accessible("qos_policy")
     def _qos_policy_update(self, id, **kwargs):
         return self.native.update_qos_policy(
-                id, _to_body("qos_policy", **kwargs))
+            id, _to_body("qos_policy", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("qos_queue")
     def _qos_queue_create(self, **kwargs):
         return self.native.create_qos_queue(
-                _to_body("qos_queue", **kwargs))
+            _to_body("qos_queue", **kwargs))
 
     def _qos_queue_delete(self, id):
        return self.native.delete_qos_queue(id)
@@ -1008,11 +1040,12 @@ class Neutron(object):
     def _qos_queue_list(self, **kwargs):
         return self.native.list_qos_queues(**kwargs)
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("rbac_policy")
     def _rbac_policy_create(self, **kwargs):
         return self.native.create_rbac_policy(
-                _to_body("rbac_policy", **kwargs))
+            _to_body("rbac_policy", **kwargs))
 
     def _rbac_policy_delete(self, id):
        return self.native.delete_rbac_policy(id)
@@ -1032,13 +1065,14 @@ class Neutron(object):
     @_obj_to_accessible("rbac_policy")
     def _rbac_policy_update(self, id, **kwargs):
         return self.native.update_rbac_policy(
-                id, _to_body("rbac_policy", **kwargs))
+            id, _to_body("rbac_policy", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("router")
     def _router_create(self, **kwargs):
         return self.native.create_router(
-                _to_body("router", **kwargs))
+            _to_body("router", **kwargs))
 
     def _router_delete(self, id):
         return self.native.delete_router(id)
@@ -1058,13 +1092,14 @@ class Neutron(object):
     @_obj_to_accessible("router")
     def _router_update(self, id, **kwargs):
         return self.native.update_router(
-                id, _to_body("router", **kwargs))
+            id, _to_body("router", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("security_group")
     def _security_group_create(self, **kwargs):
         return self.native.create_security_group(
-                _to_body("security_group", **kwargs))
+            _to_body("security_group", **kwargs))
 
     def _security_group_delete(self, id):
         return self.native.delete_security_group(id)
@@ -1084,13 +1119,14 @@ class Neutron(object):
     @_obj_to_accessible("security_group")
     def _security_group_update(self, id, **kwargs):
         return self.native.update_security_group(
-                id, _to_body("security_group", **kwargs))
+            id, _to_body("security_group", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("security_group_rule")
     def _security_group_rule_create(self, **kwargs):
         return self.native.create_security_group_rule(
-                _to_body("security_group_rule", **kwargs))
+            _to_body("security_group_rule", **kwargs))
 
     def _security_group_rule_delete(self, id):
         return self.native.delete_security_group_rule(id)
@@ -1107,11 +1143,12 @@ class Neutron(object):
     def _security_group_rule_list(self, **kwargs):
         return self.native.list_security_group_rules(**kwargs)
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("service_profile")
     def _service_profile_create(self, **kwargs):
         return self.native.create_service_profile(
-                _to_body("service_profile", **kwargs))
+            _to_body("service_profile", **kwargs))
 
     def _service_profile_delete(self, id):
         return self.native.delete_service_profile(id)
@@ -1131,13 +1168,14 @@ class Neutron(object):
     @_obj_to_accessible("service_profile")
     def _service_profile_update(self, id, **kwargs):
         return self.native.update_service_profile(
-                id, _to_body("service_profile", **kwargs))
+            id, _to_body("service_profile", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("subnet")
     def _subnet_create(self, **kwargs):
         return self.native.create_subnet(
-                _to_body("subnet", **kwargs))
+            _to_body("subnet", **kwargs))
 
     def _subnet_delete(self, id):
         return self.native.delete_subnet(id)
@@ -1157,13 +1195,14 @@ class Neutron(object):
     @_obj_to_accessible("subnet")
     def _subnet_update(self, id, **kwargs):
         return self.native.update_subnet(
-                id, _to_body("subnet", **kwargs))
+            id, _to_body("subnet", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("subnetpool")
     def _subnetpool_create(self, **kwargs):
         return self.native.create_subnetpool(
-                _to_body("subnetpool", **kwargs))
+            _to_body("subnetpool", **kwargs))
 
     def _subnetpool_delete(self, id):
         return self.native.delete_subnetpool(id)
@@ -1183,13 +1222,14 @@ class Neutron(object):
     @_obj_to_accessible("subnetpool")
     def _subnetpool_update(self, id, **kwargs):
         return self.native.update_subnetpool(
-                id, _to_body("subnetpool", **kwargs))
+            id, _to_body("subnetpool", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("trunk")
     def _trunk_create(self, **kwargs):
         return self.native.create_trunk(
-                _to_body("trunk", **kwargs))
+            _to_body("trunk", **kwargs))
 
     def _trunk_delete(self, id):
         return self.native.delete_trunk(id)
@@ -1209,13 +1249,14 @@ class Neutron(object):
     @_obj_to_accessible("trunk")
     def _trunk_update(self, id, **kwargs):
         return self.native.update_trunk(
-                id, _to_body("trunk", **kwargs))
+            id, _to_body("trunk", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("vip")
     def _vip_create(self, **kwargs):
         return self.native.create_vip(
-                _to_body("vip", **kwargs))
+            _to_body("vip", **kwargs))
 
     def _vip_delete(self, id):
         return self.native.delete_vip(id)
@@ -1235,13 +1276,14 @@ class Neutron(object):
     @_obj_to_accessible("vip")
     def _vip_update(self, id, **kwargs):
         return self.native.update_vip(
-                id, _to_body("vip", **kwargs))
+            id, _to_body("vip", **kwargs))
 
+    # ----------------------------------------------------------------------- #
 
     @_obj_to_accessible("vpnservice")
     def _vpnservice_create(self, **kwargs):
         return self.native.create_vpnservice(
-                _to_body("vpnservice", **kwargs))
+            _to_body("vpnservice", **kwargs))
 
     def _vpnservice_delete(self, id):
         return self.native.delete_vpnservice(id)
@@ -1261,7 +1303,7 @@ class Neutron(object):
     @_obj_to_accessible("vpnservice")
     def _vpnservice_update(self, id, **kwargs):
         return self.native.update_vpnservice(
-                id, _to_body("vpnservice", **kwargs))
+            id, _to_body("vpnservice", **kwargs))
 
 
 class Cinder(object):
