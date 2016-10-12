@@ -166,9 +166,12 @@ class Keeper(object):
         if func is not None and param is not None:
             try:
                 for el in list(resource.list()):
-                    probe = getattr(el, param)(**kwargs)
+                    if not kwargs:
+                        probe = getattr(el, param)
+                    else:
+                        probe = getattr(el, param)(**kwargs)
                     if func(probe):
-                        result = probe
+                        result = el
                         break
             except Exception:
                 pass
@@ -196,14 +199,13 @@ class Keeper(object):
 
         for client_name in component_names:
             client = getattr(self.client_factory, client_name)()
-            for resource_name, resource in self.cache[client_name].iteritems():
+            for resource_name, resource in reversed(list(
+                    self.cache[client_name].iteritems())):
                 resource_obj = getattr(client, resource_name)
-                for id in resource.keys():
+                for id in reversed(resource.keys()):
                     if id != admin_user_id:
                         try:
-                            resource_obj.delete(self.get_by_id(client_name,
-                                                               resource_name,
-                                                               id))
+                            resource_obj.delete(id)
                         except Exception as exc:
                             raise exc
                     del self.cache[client_name][resource_name][id]

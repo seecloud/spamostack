@@ -95,22 +95,25 @@ def come_up_subnet(neutron_subnets, length):
     for neutron_subnet in neutron_subnets:
         first = netaddr.IPAddress(netaddr.IPNetwork(neutron_subnet.cidr).first)
         last = netaddr.IPAddress(netaddr.IPNetwork(neutron_subnet.cidr).last)
-        subnets.append(first, last)
+        subnets.extend([first, last])
 
     subnets.sort()
-    if len(subnets) == 0 or str(subnets[0]) != "192.0.0.0":
-        subnets.insert(0, netaddr.IPAddress("192.0.0.0"))
-    if len(subnets) == 0 or str(subnets[-1]) != "192.255.255.255":
-        subnets.append(netaddr.IPAddress("192.255.255.255"))
+    subnets.insert(0, netaddr.IPAddress("192.0.0.0"))
+    subnets.append(netaddr.IPAddress("192.255.255.255"))
 
     max_length = 0
     for start, end in zip(subnets[::2], subnets[1::2]):
-        space_range = netaddr.IPRange(start, end)
+        space_range = list(netaddr.IPRange(start, end))
+        if str(start) != "192.0.0.0":
+            space_range = space_range[1:]
+        elif str(end) != "192.255.255.255":
+            space_range = space_range[:-1]
+
         space_length = len(space_range)
         if space_length > max_length:
             max_length = space_length
-            start_ip = start
-            end_ip = end
+            start_ip = str(start)
+            end_ip = str(end)
         if space_length >= length:
             return netaddr.iprange_to_cidrs(space_range[0],
                                             space_range[length - 1])[0]
@@ -434,7 +437,10 @@ class SpamNeutron(object):
         if network_id is None:
             return
 
-        self.native.networks.delete(network_id)
+        try:
+            self.native.networks.delete(network_id)
+        except Exception:
+            pass
 
         return network_id
 
@@ -539,7 +545,7 @@ class SpamNeutron(object):
         network = self.keeper.get_by_id("neutron", "networks", network_id)
         subnets = [self.keeper.get_by_id("neutron", "subnets", subnet)
                    for subnet in network.subnets]
-        cidr = come_up_subnet(subnets, random.randint(1, 16))
+        cidr = come_up_subnet(subnets, 2 ** random.randint(3, 4))
 
         return self.native.subnets.create(cidr=str(cidr), ip_version=4,
                                           name=name,
@@ -788,15 +794,15 @@ class SpamNova(object):
             if self.keeper.get_by_name("nova", "servers", name) is None:
                 break
 
-        server_id = self.keeper.get_random(
-            self.cache["nova"]["servers"])
+        server_id = self.keeper.get_random(self.cache["nova"]["servers"])
 
         # TO-DO: Make a normal warning logging
         if server_id is None:
             return
 
-        server = self.native.servers.update(server=server_id, name=name)
-        return server
+        server = self.keeper.get_by_id("nova", "servers", server_id)
+
+        return self.native.servers.update(server=server, name=name)
 
 
 class SpamGlance(object):
