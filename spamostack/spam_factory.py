@@ -834,9 +834,6 @@ class SpamGlance(object):
         self.spam.images.create = self.image_create
         self.spam.images.update = self.image_update
 
-    def find(self, **kwargs):
-        return list(self.native.images.list(filters=kwargs))[0]
-
     @cache
     def image_create(self):
         while True:
