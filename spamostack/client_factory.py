@@ -80,7 +80,7 @@ class Accessible(dict):
             if isinstance(arg, dict):
                 for k, v in arg.iteritems():
                     self[k] = v
-    
+
         if kwargs:
             for k, v in kwargs.iteritems():
                 self[k] = v
@@ -146,21 +146,27 @@ class Neutron(object):
         self.native = client
 
         components = []
-        actions = ["get", "list", "find", "create", "update", "delete"]
+        actions = ["get", "list", "find", "update", "create", "delete"]
 
         for name in dir(self.native):
-            if not name.startswith("_") and name.startswith("create"):
-                component = re.sub("create_", "", name)
+            if not name.startswith("__") and name.startswith("show"):
+                component = re.sub("show_", "", name)
                 components.append(component)
                 setattr(self, component + "s", lambda: None)
 
         for component in components:
             component_obj = getattr(self, component + "s")
             for action in actions:
-                if (action in ["update"] and
+                if ((action in ["update"] and
                     component in ["metering_label", "metering_label_rule",
-                                  "qos_queue",
-                                  "security_group_rule"]):
+                                  "qos_queue", "security_group_rule",
+                                  "extension", "network_ip_availability"]) or
+                    (action in ["create"] and
+                    component in ["agent", "quota",
+                                  "extension", "network_ip_availability"]) or
+                    (action in ["delete"] and
+                        component in ["extension",
+                                      "network_ip_availability"])):
                     continue
 
                 method = getattr(self, "_{0}_{1}".format(component, action))
@@ -190,6 +196,28 @@ class Neutron(object):
     def _address_scope_update(self, id, **kwargs):
         return self.native.update_address_scope(
             id, _to_body("address_scope", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    def _agent_delete(self, id):
+        return self.native.delete_agent(id)
+
+    @_lst_to_accessible("agents")
+    def _agent_find(self, **kwargs):
+        return self._agent_list(**kwargs)
+
+    @_obj_to_accessible("agent")
+    def _agent_get(self, id, **kwargs):
+        return self.native.show_agent(id, **kwargs)
+
+    @_lst_to_accessible("agents")
+    def _agent_list(self, **kwargs):
+        return self.native.list_agent(**kwargs)
+
+    @_obj_to_accessible("agent")
+    def _agent_update(self, id, **kwargs):
+        return self.native.update_agent(
+            id, _to_body("agent", **kwargs))
 
     # ----------------------------------------------------------------------- #
 
@@ -352,6 +380,20 @@ class Neutron(object):
     def _ext_update(self, id, **kwargs):
         return self.native.update_ext(
             id, _to_body("ext", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    @_lst_to_accessible("extensions")
+    def _extension_find(self, **kwargs):
+        return self._extension_list(**kwargs)
+
+    @_lst_to_accessible("extensions")
+    def _extension_list(self, **kwargs):
+        return self.native.list_extensions(**kwargs)
+
+    @_obj_to_accessible("extension")
+    def _extension_get(self, id, **kwargs):
+        return self.native.show_extension(id, **kwargs)
 
     # ----------------------------------------------------------------------- #
 
@@ -912,6 +954,20 @@ class Neutron(object):
 
     # ----------------------------------------------------------------------- #
 
+    @_lst_to_accessible("network_ip_availabilities")
+    def _network_ip_availability_find(self, **kwargs):
+        return self._network_ip_availability_list(**kwargs)
+
+    @_obj_to_accessible("network_ip_availability")
+    def _network_ip_availability_get(self, id, **kwargs):
+        return self.native.show_network_ip_availability(id, **kwargs)
+
+    @_lst_to_accessible("network_ip_availabilities")
+    def _network_ip_availability_list(self, **kwargs):
+        return self.native.list_network_ip_availabilties(**kwargs)
+
+    # ----------------------------------------------------------------------- #
+
     @_obj_to_accessible("network_gateway")
     def _network_gateway_create(self, **kwargs):
         return self.native.create_network_gateway(
@@ -1304,6 +1360,28 @@ class Neutron(object):
     def _vpnservice_update(self, id, **kwargs):
         return self.native.update_vpnservice(
             id, _to_body("vpnservice", **kwargs))
+
+    # ----------------------------------------------------------------------- #
+
+    def _quota_delete(self, id):
+        return self.native.delete_quota(id)
+
+    @_lst_to_accessible("quotas")
+    def _quota_find(self, **kwargs):
+        return self._quota_list(**kwargs)
+
+    @_obj_to_accessible("quota")
+    def _quota_get(self, id, **kwargs):
+        return self.native.show_quota(id, **kwargs)
+
+    @_lst_to_accessible("quotas")
+    def _quota_list(self, **kwargs):
+        return self.native.list_quotas(**kwargs)
+
+    @_obj_to_accessible("quota")
+    def _quota_update(self, id, **kwargs):
+        return self.native.update_quota(
+            id, _to_body("quota", **kwargs))
 
 
 class Cinder(object):

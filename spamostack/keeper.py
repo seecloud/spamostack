@@ -40,14 +40,14 @@ class Keeper(object):
         self.cache["keystone"]["users"][user.id] = False
 
         # quotas update
-        self.client_factory.cinder().native.quotas.update(
+        self.client_factory.cinder().quotas.update(
             project.id, backup_gigabytes=-1, backups=-1, gigabytes=-1,
             per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
-        self.client_factory.neutron().native.update_quota(
+        self.client_factory.neutron().quotas.update(
             project.id, subnet=-1, network=-1, floatingip=-1, subnetpool=-1,
             port=-1, security_group_rule=-1, security_group=-1, router=-1,
             rbac_policy=-1)
-        self.client_factory.nova().native.quotas.update(
+        self.client_factory.nova().quotas.update(
             project.id, cores=-1, fixed_ips=-1, floating_ips=-1,
             injected_file_content_bytes=-1, injected_file_path_bytes=-1,
             injected_files=-1, instances=-1, key_pairs=-1, metadata_items=-1,
@@ -136,6 +136,7 @@ class Keeper(object):
 
     def get(self, client_name, resource_name, param=None, func=None, **kwargs):
         """Get a resource.
+
         If `param` and `func` is not `None` then `param` gets retrieve
         with **kwargs as arguments then passes result to the `func`
         as an argument and then returns it as result.
@@ -165,9 +166,12 @@ class Keeper(object):
         if func is not None and param is not None:
             try:
                 for el in list(resource.list()):
-                    probe = getattr(el, param)(**kwargs)
+                    if not kwargs:
+                        probe = getattr(el, param)
+                    else:
+                        probe = getattr(el, param)(**kwargs)
                     if func(probe):
-                        result = probe
+                        result = el
                         break
             except Exception:
                 pass
@@ -195,14 +199,13 @@ class Keeper(object):
 
         for client_name in component_names:
             client = getattr(self.client_factory, client_name)()
-            for resource_name, resource in self.cache[client_name].iteritems():
-                resource_obj = getattr(client.native, resource_name)
-                for id in resource.keys():
+            for resource_name, resource in reversed(list(
+                    self.cache[client_name].iteritems())):
+                resource_obj = getattr(client, resource_name)
+                for id in reversed(resource.keys()):
                     if id != admin_user_id:
                         try:
-                            resource_obj.delete(self.get_by_id(client_name,
-                                                               resource_name,
-                                                               id))
+                            resource_obj.delete(id)
                         except Exception as exc:
                             raise exc
                     del self.cache[client_name][resource_name][id]

@@ -13,14 +13,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import argparse
-import random
 import netaddr
 
+import random
+
+import client_factory
 import faker
-from openstackclient.common import clientmanager
-from os_client_config import config as cloud_config
-import client_factory 
 
 
 def cache(func):
@@ -48,8 +46,9 @@ def cache(func):
             section = "servers"
         elif "image" in func.__name__:
             section = "images"
-        (self.cache[self.__class__.__name__.lower()][section].
-         setdefault(processed.id, False))
+
+        class_name = self.__class__.__name__.lower().replace("spam", "")
+        self.cache[class_name][section].setdefault(processed.id, False)
 
         return processed
 
@@ -81,7 +80,9 @@ def uncache(func):
             section = "servers"
         elif "image" in func.__name__:
             section = "images"
-        del self.cache[self.__class__.__name__.lower()][section][processed]
+
+        class_name = self.__class__.__name__.lower().replace("spam", "")
+        del self.cache[class_name][section][processed]
 
         return processed
 
@@ -94,26 +95,30 @@ def come_up_subnet(neutron_subnets, length):
     for neutron_subnet in neutron_subnets:
         first = netaddr.IPAddress(netaddr.IPNetwork(neutron_subnet.cidr).first)
         last = netaddr.IPAddress(netaddr.IPNetwork(neutron_subnet.cidr).last)
-        subnets.append(first, last)
+        subnets.extend([first, last])
 
     subnets.sort()
-    if len(subnets) == 0 or str(subnets[0]) != "192.0.0.0":
-        subnets.insert(0, netaddr.IPAddress("192.0.0.0"))
-    if len(subnets) == 0 or str(subnets[-1]) != "192.255.255.255":
-        subnets.insert(0, netaddr.IPAddress("192.255.255.255"))
+    subnets.insert(0, netaddr.IPAddress("192.0.0.0"))
+    subnets.append(netaddr.IPAddress("192.255.255.255"))
 
     max_length = 0
     for start, end in zip(subnets[::2], subnets[1::2]):
-        space_range = netaddr.IPRange(start, end)
+        space_range = list(netaddr.IPRange(start, end))
+        if str(start) != "192.0.0.0":
+            space_range = space_range[1:]
+        elif str(end) != "192.255.255.255":
+            space_range = space_range[:-1]
+
         space_length = len(space_range)
         if space_length > max_length:
             max_length = space_length
-            start_ip = start
-            end_ip = end
+            start_ip = str(start)
+            end_ip = str(end)
         if space_length >= length:
-            return netaddr.IPNetwork(space_range[0], space_range[length - 1])
+            return netaddr.iprange_to_cidrs(space_range[0],
+                                            space_range[length - 1])[0]
 
-    return netaddr.IPNetwork(start_ip, end_ip)
+    return netaddr.iprange_to_cidrs(start_ip, end_ip)[0]
 
 
 class SpamFactory(client_factory.ClientFactory, object):
@@ -136,38 +141,34 @@ class SpamFactory(client_factory.ClientFactory, object):
         self.keeper = keeper
         self.faker = faker.Factory.create('en_US')
 
-    def keystone(self):
+    def spam_keystone(self):
         """Create Keystone client."""
 
-        return SpamKeystone(self.cache, self.client_manager.identity, self.faker,
-                        self.keeper)
+        return SpamKeystone(self.cache, self.keystone(), self.faker,
+                            self.keeper)
 
-    def neutron(self):
+    def spam_neutron(self):
         """Create Neutron client."""
 
-        return SpamNeutron(self.cache, self.client_manager.network, self.faker,
-                       self.keeper)
+        return SpamNeutron(self.cache, self.neutron(), self.faker, self.keeper)
 
-    def cinder(self):
+    def spam_cinder(self):
         """Create Cinder client."""
 
-        return SpamCinder(self.cache, self.client_manager.volume, self.faker,
-                      self.keeper)
+        return SpamCinder(self.cache, self.cinder(), self.faker, self.keeper)
 
-    def nova(self):
+    def spam_nova(self):
         """Create Nova client."""
 
-        return SpamNova(self.cache, self.client_manager.compute, self.faker,
-                    self.keeper)
+        return SpamNova(self.cache, self.nova(), self.faker, self.keeper)
 
-    def glance(self):
+    def spam_glance(self):
         """Create Glance client."""
 
-        return SpamGlance(self.cache, self.client_manager.image, self.faker,
-                          self.keeper)
+        return SpamGlance(self.cache, self.glance(), self.faker, self.keeper)
 
 
-class SpamKeystone(client_factory.Keystone, object):
+class SpamKeystone(object):
     def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Keystone` class instance.
 
@@ -184,22 +185,20 @@ class SpamKeystone(client_factory.Keystone, object):
         @type keeper: `keeper.Keeper`
         """
 
-        super(SpamKeystone, self).__init__(client)
+        self.native = client
 
         self.cache = cache
         self.faker = faker
         self.keeper = keeper
 
+        self.spam = lambda: None
+
         self.spam.users = lambda: None
         self.spam.projects = lambda: None
-
-        self.users = self.native.users
 
         self.spam.users.create = self.spam_user_create
         self.spam.users.update = self.spam_user_update
         self.spam.users.delete = self.spam_user_delete
-
-        self.projects = self.native.projects
 
         self.spam.projects.create = self.spam_project_create
         self.spam.projects.update = self.spam_project_update
@@ -221,22 +220,21 @@ class SpamKeystone(client_factory.Keystone, object):
             return
 
         project = self.keeper.get_by_id("keystone", "projects", project_id)
-        user = self.native.users.create(name=name,
-                                        domain="default",
-                                        password=password,
-                                        email=email,
+        user = self.native.users.create(name=name, domain="default",
+                                        password=password, email=email,
                                         description=("User with name {}".
                                                      format(name)),
                                         enabled=True,
                                         default_project=project)
 
-        self.native.roles.grant(self.native.roles.find(name="admin"),
-                                user, project=project)
-        self.cache["users"][name] = {"os_username": user.name,
-                                     "os_password": password,
-                                     "os_project_name": project.name,
-                                     "os_project_domain_id": project.domain_id,
-                                     "os_user_domain_id": user.domain_id}
+        self.native.roles.grant(self.native.roles.find(name="admin"), user,
+                                project=project)
+
+        self.cache["users"][name] = {"username": user.name,
+                                     "password": password,
+                                     "project_name": project.name,
+                                     "project_domain_id": project.domain_id,
+                                     "user_domain_id": user.domain_id}
 
         return user
 
@@ -258,24 +256,21 @@ class SpamKeystone(client_factory.Keystone, object):
         password = self.faker.password()
         email = self.faker.safe_email()
 
-        self.cache["users"][name] = {"os_username": name,
-                                     "os_password": password,
-                                     "os_project_name":
+        self.cache["users"][name] = {"username": name,
+                                     "password": password,
+                                     "project_name":
                                      self.cache["users"]
-                                     [user.name]["os_project_name"],
-                                     "os_project_domain_id":
+                                     [user.name]["project_name"],
+                                     "project_domain_id":
                                      self.cache["users"]
-                                     [user.name]["os_project_domain_id"],
-                                     "os_user_domain_id":
+                                     [user.name]["project_domain_id"],
+                                     "user_domain_id":
                                      self.cache["users"]
-                                     [user.name]["os_user_domain_id"]}
+                                     [user.name]["user_domain_id"]}
         del self.cache["users"][user.name]
 
-        return self.native.users.update(user=user,
-                                        name=name,
-                                        domain="default",
-                                        password=password,
-                                        email=email,
+        return self.native.users.update(user=user, name=name, domain="default",
+                                        password=password, email=email,
                                         description=("User with name {}".
                                                      format(name)),
                                         enabled=True)
@@ -301,20 +296,19 @@ class SpamKeystone(client_factory.Keystone, object):
             if self.keeper.get_by_name("keystone", "projects", name) is None:
                 break
 
-        project = self.native.projects.create(name=name,
-                                              domain="default",
+        project = self.native.projects.create(name=name, domain="default",
                                               description=("Project {}".
                                                            format(name)),
                                               enabled=True)
         # quotas update
-        self.keeper.client_factory.cinder().native.quotas.update(
+        self.keeper.client_factory.cinder().quotas.update(
             project.id, backup_gigabytes=-1, backups=-1, gigabytes=-1,
             per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
-        self.keeper.client_factory.neutron().native.update_quota(
+        self.keeper.client_factory.neutron().quotas.update(
             project.id, subnet=-1, network=-1, floatingip=-1, subnetpool=-1,
             port=-1, security_group_rule=-1, security_group=-1, router=-1,
             rbac_policy=-1)
-        self.keeper.client_factory.nova().native.quotas.update(
+        self.keeper.client_factory.nova().quotas.update(
             project.id, cores=-1, fixed_ips=-1, floating_ips=-1,
             injected_file_content_bytes=-1, injected_file_path_bytes=-1,
             injected_files=-1, instances=-1, key_pairs=-1, metadata_items=-1,
@@ -339,8 +333,7 @@ class SpamKeystone(client_factory.Keystone, object):
             if project.name != "admin":
                 break
 
-        return self.native.projects.update(project=project,
-                                           name=name,
+        return self.native.projects.update(project=project, name=name,
                                            domain="default",
                                            description=("Project {}".
                                                         format(name)),
@@ -362,7 +355,7 @@ class SpamKeystone(client_factory.Keystone, object):
         return project_id
 
 
-class Neutron(object):
+class SpamNeutron(object):
     def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Neutron` class instance.
 
@@ -379,43 +372,30 @@ class Neutron(object):
         @type keeper: `keeper.Keeper`
         """
 
-        self.cache = cache
         self.native = client
+
+        self.cache = cache
         self.faker = faker
         self.keeper = keeper
+
+        self.spam = lambda: None
 
         self.spam.networks = lambda: None
         self.spam.routers = lambda: None
         self.spam.ports = lambda: None
         self.spam.subnets = lambda: None
 
-        self.networks.get = self.native.get_network
-        self.networks.find = self.native.find_network
-        self.networks.list = self.native.networks
-
         self.spam.networks.create = self.spam_network_create
         self.spam.networks.update = self.spam_network_update
         self.spam.networks.delete = self.spam_network_delete
-
-        self.routers.get = self.native.get_router
-        self.routers.find = self.native.find_router
-        self.routers.list = self.native.routers
 
         self.spam.routers.create = self.spam_router_create
         self.spam.routers.update = self.spam_router_update
         self.spam.routers.delete = self.spam_router_delete
 
-        self.ports.get = self.native.get_port
-        self.ports.find = self.native.find_port
-        self.ports.list = self.native.ports
-
         self.spam.ports.create = self.spam_port_create
         self.spam.ports.update = self.spam_port_update
         self.spam.ports.delete = self.spam_port_delete
-
-        self.subnets.get = self.native.get_subnet
-        self.subnets.find = self.native.find_subnet
-        self.subnets.list = self.native.subnets
 
         self.spam.subnets.create = self.spam_subnet_create
         self.spam.subnets.update = self.spam_subnet_update
@@ -428,10 +408,10 @@ class Neutron(object):
             if self.keeper.get_by_name("neutron", "networks", name) is None:
                 break
 
-        return self.native.create_network(name=name,
-                                          description=("Network with name {}".
-                                                       format(name)),
-                                          shared=True)
+        return self.native.networks.create(name=name,
+                                           description=("Network with name {}".
+                                                        format(name)),
+                                           shared=True)
 
     def spam_network_update(self):
         while True:
@@ -445,9 +425,9 @@ class Neutron(object):
         if network_id is None:
             return
 
-        return self.native.update_network(network_id, name=name,
-                                          description=("Network with name {}".
-                                                       format(name)))
+        return self.native.networks.update(network_id, name=name,
+                                           description=("Network with name {}".
+                                                        format(name)))
 
     @uncache
     def spam_network_delete(self):
@@ -457,7 +437,10 @@ class Neutron(object):
         if network_id is None:
             return
 
-        self.native.delete_network(network_id)
+        try:
+            self.native.networks.delete(network_id)
+        except Exception:
+            pass
 
         return network_id
 
@@ -468,9 +451,9 @@ class Neutron(object):
             if self.keeper.get_by_name("neutron", "routers", name) is None:
                 break
 
-        return self.native.create_router(name=name,
-                                         description=("Router with name {}".
-                                                      format(name)))
+        return self.native.routers.create(name=name,
+                                          description=("Router with name {}".
+                                                       format(name)))
 
     def spam_router_update(self):
         while True:
@@ -484,9 +467,9 @@ class Neutron(object):
         if router_id is None:
             return
 
-        return self.native.update_router(router_id, name=name,
-                                         description=("Router with name {}".
-                                                      format(name)))
+        return self.native.routers.update(router_id, name=name,
+                                          description=("Router with name {}".
+                                                       format(name)))
 
     @uncache
     def spam_router_delete(self):
@@ -496,7 +479,7 @@ class Neutron(object):
         if router_id is None:
             return
 
-        self.native.delete_router(router_id)
+        self.native.routers.delete(router_id)
 
         return router_id
 
@@ -513,10 +496,10 @@ class Neutron(object):
         if network_id is None:
             return
 
-        return self.native.create_port(name=name,
-                                       description=("Port with name {}".
-                                                    format(name)),
-                                       network_id=network_id)
+        return self.native.ports.create(name=name,
+                                        description=("Port with name {}".
+                                                     format(name)),
+                                        network_id=network_id)
 
     def spam_port_update(self):
         while True:
@@ -530,9 +513,9 @@ class Neutron(object):
         if port_id is None:
             return
 
-        return self.native.update_port(port_id, name=name,
-                                       description=("Port with name {}".
-                                                    format(name)))
+        return self.native.ports.update(port_id, name=name,
+                                        description=("Port with name {}".
+                                                     format(name)))
 
     @uncache
     def spam_port_delete(self):
@@ -542,7 +525,7 @@ class Neutron(object):
         if port_id is None:
             return
 
-        self.native.delete_port(port_id)
+        self.native.ports.delete(port_id)
 
         return port_id
 
@@ -560,15 +543,15 @@ class Neutron(object):
             return
 
         network = self.keeper.get_by_id("neutron", "networks", network_id)
-        cidr = come_up_subnet([subnet for subnet in network.subnets],
-                              random.randint(1, 16))
+        subnets = [self.keeper.get_by_id("neutron", "subnets", subnet)
+                   for subnet in network.subnets]
+        cidr = come_up_subnet(subnets, 2 ** random.randint(3, 4))
 
-        return self.native.create_subnet(cidr=str(cidr),
-                                         ip_version=4,
-                                         name=name,
-                                         description=("Subnet with name {}".
-                                                      format(name)),
-                                         network_id=network_id)
+        return self.native.subnets.create(cidr=str(cidr), ip_version=4,
+                                          name=name,
+                                          description=("Subnet with name {}".
+                                                       format(name)),
+                                          network_id=network_id)
 
     def spam_subnet_update(self):
         while True:
@@ -582,9 +565,9 @@ class Neutron(object):
         if subnet_id is None:
             return
 
-        return self.native.update_subnet(subnet_id, name=name,
-                                         description=("Subnet with name {}".
-                                                      format(name)))
+        return self.native.subnets.update(subnet_id, name=name,
+                                          description=("Subnet with name {}".
+                                                       format(name)))
 
     @uncache
     def spam_subnet_delete(self):
@@ -594,12 +577,12 @@ class Neutron(object):
         if subnet_id is None:
             return
 
-        self.native.delete_subnet(subnet_id)
+        self.native.subnets.update(subnet_id)
 
         return subnet_id
 
 
-class Cinder(object):
+class SpamCinder(object):
     def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Cinder` class instance.
 
@@ -616,23 +599,22 @@ class Cinder(object):
         @type keeper: `keeper.Keeper`
         """
 
-        self.cache = cache
         self.native = client
+
+        self.cache = cache
         self.faker = faker
         self.keeper = keeper
 
-        self.volumes = lambda: None
+        self.spam = lambda: None
 
-        self.volumes.get = self.native.volumes.get
-        self.volumes.find = self.native.volumes.find
-        self.volumes.list = self.native.volumes.list
+        self.spam.volumes = lambda: None
 
-        self.volumes.create = self.volume_create
-        self.volumes.update = self.volume_update
-        self.volumes.extend = self.volume_extend
-        self.volumes.attach = self.volume_attach
-        self.volumes.detach = self.volume_detach
-        self.volumes.delete = self.volume_delete
+        self.spam.volumes.create = self.volume_create
+        self.spam.volumes.update = self.volume_update
+        self.spam.volumes.extend = self.volume_extend
+        self.spam.volumes.attach = self.volume_attach
+        self.spam.volumes.detach = self.volume_detach
+        self.spam.volumes.delete = self.volume_delete
 
     @cache
     def volume_create(self):
@@ -651,7 +633,7 @@ class Cinder(object):
 
     def volume_update(self):
         while True:
-            name = self.faker.name()
+            name = self.faker.word()
             if self.keeper.get_by_name("cinder", "volumes", name) is None:
                 break
 
@@ -663,8 +645,7 @@ class Cinder(object):
 
         volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
 
-        return self.native.volumes.update(volume=volume,
-                                          name=name,
+        return self.native.volumes.update(volume=volume, name=name,
                                           description=("Volume with name {}".
                                                        format(name)))
 
@@ -724,7 +705,7 @@ class Cinder(object):
         return volume_id
 
 
-class Nova(object):
+class SpamNova(object):
     def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Nova` class instance.
 
@@ -741,26 +722,25 @@ class Nova(object):
         @type keeper: `keeper.Keeper`
         """
 
-        self.cache = cache
         self.native = client
+
+        self.cache = cache
         self.faker = faker
         self.keeper = keeper
 
-        self.flavors = lambda: None
-        self.flavors.get = self.native.flavors.get
-        self.flavors.find = self.native.flavors.find
-        self.flavors.create = self.flavor_create
-        self.flavors.delete = self.flavor_delete
+        self.spam = lambda: None
 
-        self.security_groups = lambda: None
-        self.security_groups.get = self.native.security_groups.get
-        self.security_groups.find = self.native.security_groups.find
+        self.spam.flavors = lambda: None
+        self.spam.flavors.create = self.flavor_create
+        self.spam.flavors.delete = self.flavor_delete
 
-        self.servers = lambda: None
-        self.servers.get = self.native.servers.get
-        self.servers.find = self.native.servers.find
-        self.servers.create = self.server_create
-        self.servers.update = self.server_update
+        self.spam.security_groups = lambda: None
+        self.spam.security_groups.get = self.native.security_groups.get
+        self.spam.security_groups.find = self.native.security_groups.find
+
+        self.spam.servers = lambda: None
+        self.spam.servers.create = self.server_create
+        self.spam.servers.update = self.server_update
 
     @cache
     def flavor_create(self):
@@ -802,10 +782,11 @@ class Nova(object):
         if network is None:
             return
 
-        return self.native.servers.create(name=name, image=image,
-                                          flavor=flavor,
-                                          security_groups=security_group,
-                                          nics=[{"net-id": network.id}])
+        server = self.native.servers.create(name=name, image=image,
+                                            flavor=flavor,
+                                            security_groups=security_group,
+                                            nics=[{"net-id": network.id}])
+        return server
 
     def server_update(self):
         while True:
@@ -813,12 +794,18 @@ class Nova(object):
             if self.keeper.get_by_name("nova", "servers", name) is None:
                 break
 
-        server_id = self.keeper.get_random(
-            self.cache["nova"]["servers"])
-        return self.native.servers.update(server=server_id, name=name)
+        server_id = self.keeper.get_random(self.cache["nova"]["servers"])
+
+        # TO-DO: Make a normal warning logging
+        if server_id is None:
+            return
+
+        server = self.keeper.get_by_id("nova", "servers", server_id)
+
+        return self.native.servers.update(server=server, name=name)
 
 
-class Glance(object):
+class SpamGlance(object):
     def __init__(self, cache, client, faker=None, keeper=None):
         """Create `Glance` class instance.
 
@@ -835,20 +822,17 @@ class Glance(object):
         @type keeper: `keeper.Keeper`
         """
 
-        self.cache = cache
         self.native = client
+
+        self.cache = cache
         self.faker = faker
         self.keeper = keeper
 
-        self.images = lambda: None
-        self.images.get = self.native.images.get
-        self.images.list = self.native.images.list
-        self.images.find = self.find
-        self.images.create = self.image_create
-        self.images.update = self.image_update
+        self.spam = lambda: None
 
-    def find(self, **kwargs):
-        return list(self.native.images.list(filters=kwargs))[0]
+        self.spam.images = lambda: None
+        self.spam.images.create = self.image_create
+        self.spam.images.update = self.image_update
 
     @cache
     def image_create(self):
@@ -868,6 +852,19 @@ class Glance(object):
             name = self.faker.word()
             if self.keeper.get_by_name("glance", "images", name) is None:
                 break
-        image_id = self.keeper.get_random(self.cache["glance"]["images"])
+
+        if len(self.cache["glance"]["images"]) == 1:
+            return
+
+        while True:
+            image_id = self.keeper.get_random(self.cache["glance"]["images"])
+            image = self.keeper.get_by_id("glance", "images", image_id)
+            if not image.name.startswith("cirros"):
+                break
+
+        # TO-DO: Make a normal warning logging
+        if image_id is None:
+            return
+
         image = self.native.images.update(image_id, name=name)
         return image
