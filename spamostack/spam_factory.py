@@ -747,11 +747,41 @@ class SpamNova(object):
             name = self.faker.word()
             if self.keeper.get_by_name("nova", "flavors", name) is None:
                 break
-        return self.native.flavors.create(name, 1, 1, 1)
+
+        return self.native.flavors.create(name=name, ram=1, vcpus=1, disc=1,
+                                          description=("Flavor with name {}".
+                                                       format(name)))
+
+    def flavor_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("nova", "flavors", name) is None:
+                break
+
+        flavor_id = self.keeper.get_random(self.cache["nova"]["flavors"])
+
+        # TO-DO: Make a normal warning logging
+        if flavor_id is None:
+            return
+
+        flavor = self.keeper.get_by_id("nova", "flavors", flavor_id)
+
+        return self.native.flavors.update(flavor=flavor, name=name,
+                                          description=("Flavor with name {}".
+                                                       format(name)))
 
     @uncache
     def flavor_delete(self):
-        pass
+        flavor_id = self.keeper.get_random(self.cache["nova"]["flavors"])
+
+        # TO-DO: Make a normal warning logging
+        if flavor_id is None:
+            return
+
+        flavor = self.keeper.get_by_id("cinder", "volumes", flavor_id)
+        self.native.flavors.delete(flavor)
+
+        return flavor_id
 
     @cache
     def server_create(self):
@@ -784,7 +814,9 @@ class SpamNova(object):
         server = self.native.servers.create(name=name, image=image,
                                             flavor=flavor,
                                             security_groups=security_group,
-                                            nics=[{"net-id": network.id}])
+                                            nics=[{"net-id": network.id}],
+                                            description=("Server with name {}".
+                                                       format(name)))
         return server
 
     def server_update(self):
@@ -801,7 +833,22 @@ class SpamNova(object):
 
         server = self.keeper.get_by_id("nova", "servers", server_id)
 
-        return self.native.servers.update(server=server, name=name)
+        return self.native.servers.update(server=server, name=name,
+                                          description=("Server with name {}".
+                                                       format(name)))
+
+    @uncache
+    def server_delete(self):
+        server_id = self.keeper.get_random(self.cache["nova"]["flavors"])
+
+        # TO-DO: Make a normal warning logging
+        if server_id is None:
+            return
+
+        server = self.keeper.get_by_id("nova", "servers", server_id)
+        self.native.servers.delete(server)
+
+        return server_id
 
 
 class SpamGlance(object):
@@ -867,3 +914,16 @@ class SpamGlance(object):
 
         image = self.native.images.update(image_id, name=name)
         return image
+
+    @uncache
+    def image_delete(self):
+        image_id = self.keeper.get_random(self.cache["glance"]["images"])
+
+        # TO-DO: Make a normal warning logging
+        if image_id is None:
+            return
+
+        image = self.keeper.get_by_id("glance", "images", image_id)
+        self.native.images.delete(image)
+
+        return image_id

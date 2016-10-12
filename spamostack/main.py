@@ -27,7 +27,7 @@ from simulator import Simulator
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--pipe', dest='pipelines',
+parser.add_argument('--conf', dest='conf',
                     default='/etc/spamostack/conf.json',
                     help='Path to the config file with pipes')
 parser.add_argument('--db', dest='db', default='./db',
@@ -42,9 +42,9 @@ log.addHandler(logger.SpamStreamHandler())
 
 
 def main():
-    if args.pipelines:
-        with open(args.pipelines, 'r') as pipes_file:
-            pipelines = json.load(pipes_file,
+    if args.conf:
+        with open(args.conf, 'r') as pipes_file:
+            conf = json.load(pipes_file,
                                   object_pairs_hook=collections.OrderedDict)
 
     simulators = []
@@ -69,7 +69,7 @@ def main():
     for security_group in admin_factory.nova().security_groups.list():
         (cache["nova"]["security_groups"][security_group.id]) = False
 
-    for pipe_name, pipe in pipelines.iteritems():
+    for pipe_name, pipe in conf.iteritems():
         simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
 
     for simulator in simulators:
