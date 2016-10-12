@@ -136,6 +136,7 @@ class Keeper(object):
 
     def get(self, client_name, resource_name, param=None, func=None, **kwargs):
         """Get a resource.
+
         If `param` and `func` is not `None` then `param` gets retrieve
         with **kwargs as arguments then passes result to the `func`
         as an argument and then returns it as result.

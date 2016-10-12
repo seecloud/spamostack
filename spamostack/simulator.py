@@ -17,7 +17,6 @@ import random
 import threading
 import time
 
-from client_factory import ClientFactory
 import spam_factory
 
 
@@ -53,9 +52,10 @@ class Simulator(object):
         user = self.keeper.get_by_id("keystone", "users", unused_id)
         self.user = self.cache["users"][user.name]
         self.user["auth_url"] = self.cache["api"]["auth_url"]
-        self.client_factory = spam_factory.SpamFactory(self.cache, self.user, self.keeper)
+        self.client_factory = spam_factory.SpamFactory(self.cache, self.user,
+                                                       self.keeper)
 
-    #@threader
+    @threader
     def simulate(self):
         """Simulate an actions."""
 
@@ -69,8 +69,8 @@ class Simulator(object):
                     self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
-            client = getattr(self.client_factory, "spam_"+pipe_client)()
-            loop("spam_"+pipe_client, pipe, client.spam)
+            client = getattr(self.client_factory, "spam_" + pipe_client)()
+            loop("spam_" + pipe_client, pipe, client.spam)
 
     def rotate(self, func, period, number, count):
         """Execute method specific number of times

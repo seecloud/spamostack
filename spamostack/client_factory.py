@@ -80,7 +80,7 @@ class Accessible(dict):
             if isinstance(arg, dict):
                 for k, v in arg.iteritems():
                     self[k] = v
-    
+
         if kwargs:
             for k, v in kwargs.iteritems():
                 self[k] = v
@@ -157,14 +157,16 @@ class Neutron(object):
         for component in components:
             component_obj = getattr(self, component + "s")
             for action in actions:
-                if (action in ["update"] and
+                if ((action in ["update"] and
                     component in ["metering_label", "metering_label_rule",
                                   "qos_queue", "security_group_rule",
-                                  "extension", "network_ip_availability"]) or \
-                        (action in ["create"] and
-                         component in ["agent", "quota", "extension", "network_ip_availability"]) or \
-                        (action in ["delete"] and
-                         component in ["extension", "network_ip_availability"]):
+                                  "extension", "network_ip_availability"]) or
+                    (action in ["create"] and
+                    component in ["agent", "quota",
+                                  "extension", "network_ip_availability"]) or
+                    (action in ["delete"] and
+                        component in ["extension",
+                                      "network_ip_availability"])):
                     continue
 
                 method = getattr(self, "_{0}_{1}".format(component, action))
