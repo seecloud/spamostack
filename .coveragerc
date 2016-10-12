@@ -5,6 +5,8 @@ source = kbackend
 [report]
 ignore_errors = True
 precision = 3
+exclude_lines =
+    if __name__ == .__main__.:
 
 [html]
 directory = .test_result/cover
