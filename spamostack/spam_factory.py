@@ -74,6 +74,8 @@ def uncache(func):
             section = "routers"
         elif "port" in func.__name__:
             section = "ports"
+        elif "subnet" in func.__name__:
+            section = "subnets"
         elif "flavor" in func.__name__:
             section = "flavors"
         elif "server" in func.__name__:
@@ -238,10 +240,11 @@ class SpamKeystone(object):
         return user
 
     def spam_user_update(self):
+        # TO-DO: Make a normal warning logging
+        if len(self.cache["keystone"]["users"]) <= 1:
+            return
+
         while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["users"]) == 1:
-                return
             name = self.faker.name()
             if self.keeper.get_by_name("keystone", "users", name) is None:
                 break
@@ -276,10 +279,11 @@ class SpamKeystone(object):
 
     @uncache
     def spam_user_delete(self):
+        # TO-DO: Make a normal warning logging
+        if len(self.cache["keystone"]["users"]) <= 1:
+            return
+
         while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["users"]) == 1:
-                return
             user_id = self.keeper.get_random(self.cache["keystone"]["users"])
             user = self.keeper.get_by_id("keystone", "users", user_id)
             if user.name != "admin":
@@ -317,15 +321,16 @@ class SpamKeystone(object):
         return project
 
     def spam_project_update(self):
+        # TO-DO: Make a normal warning logging
+        if len(self.cache["keystone"]["projects"]) <= 1:
+            return
+
         while True:
             name = self.faker.word()
             if self.keeper.get_by_name("keystone", "projects", name) is None:
                 break
 
         while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["projects"]) == 1:
-                return
             project_id = self.keeper.get_random(
                 self.cache["keystone"]["projects"])
             project = self.keeper.get_by_id("keystone", "projects", project_id)
@@ -340,10 +345,11 @@ class SpamKeystone(object):
 
     @uncache
     def spam_project_delete(self):
+        # TO-DO: Make a normal warning logging
+        if len(self.cache["keystone"]["projects"]) <= 1:
+            return
+
         while True:
-            # TO-DO: Make a normal warning logging
-            if len(self.cache["keystone"]["projects"]) == 1:
-                return
             project_id = self.keeper.get_random(
                 self.cache["keystone"]["projects"])
             project = self.keeper.get_by_id("keystone", "projects", project_id)
@@ -699,6 +705,9 @@ class SpamCinder(object):
             return
 
         volume = self.keeper.get_by_id("cinder", "volumes", volume_id)
+        if len(volume.attachments) > 0:
+            self.native.volumes.detach(volume)
+
         self.native.volumes.delete(volume)
 
         return volume_id
@@ -731,6 +740,7 @@ class SpamNova(object):
 
         self.spam.flavors = lambda: None
         self.spam.flavors.create = self.flavor_create
+        self.spam.flavors.update = self.flavor_update
         self.spam.flavors.delete = self.flavor_delete
 
         self.spam.security_groups = lambda: None
@@ -740,6 +750,7 @@ class SpamNova(object):
         self.spam.servers = lambda: None
         self.spam.servers.create = self.server_create
         self.spam.servers.update = self.server_update
+        self.spam.servers.delete = self.server_delete
 
     @cache
     def flavor_create(self):
@@ -748,9 +759,7 @@ class SpamNova(object):
             if self.keeper.get_by_name("nova", "flavors", name) is None:
                 break
 
-        return self.native.flavors.create(name=name, ram=1, vcpus=1, disc=1,
-                                          description=("Flavor with name {}".
-                                                       format(name)))
+        return self.native.flavors.create(name=name, ram=1, vcpus=1, disk=1)
 
     def flavor_update(self):
         while True:
@@ -766,9 +775,7 @@ class SpamNova(object):
 
         flavor = self.keeper.get_by_id("nova", "flavors", flavor_id)
 
-        return self.native.flavors.update(flavor=flavor, name=name,
-                                          description=("Flavor with name {}".
-                                                       format(name)))
+        return self.native.flavors.update(flavor=flavor, name=name)
 
     @uncache
     def flavor_delete(self):
@@ -778,7 +785,7 @@ class SpamNova(object):
         if flavor_id is None:
             return
 
-        flavor = self.keeper.get_by_id("cinder", "volumes", flavor_id)
+        flavor = self.keeper.get_by_id("nova", "flavors", flavor_id)
         self.native.flavors.delete(flavor)
 
         return flavor_id
@@ -794,15 +801,6 @@ class SpamNova(object):
         image = self.keeper.get_by_id("glance", "images", image_id)
         flavor_id = self.keeper.get_random(self.cache["nova"]["flavors"])
         flavor = self.keeper.get_by_id("nova", "flavors", flavor_id)
-        if "security_groups" in self.cache["nova"]:
-            # FIXME (mivanov) Fix security groups assigning ASAP
-            security_group = None
-            # security_group_id = self.keeper.get_random(
-            #    self.cache["nova"]["security_groups"])
-            # security_group = self.keeper.get_by_id(
-            #    "nova", "security_groups", security_group_id)
-        else:
-            security_group = None
 
         network = self.keeper.get("neutron", "networks", "subnets",
                                   lambda x: len(x) > 0)
@@ -813,10 +811,7 @@ class SpamNova(object):
 
         server = self.native.servers.create(name=name, image=image,
                                             flavor=flavor,
-                                            security_groups=security_group,
-                                            nics=[{"net-id": network.id}],
-                                            description=("Server with name {}".
-                                                       format(name)))
+                                            nics=[{"net-id": network.id}])
         return server
 
     def server_update(self):
@@ -833,13 +828,11 @@ class SpamNova(object):
 
         server = self.keeper.get_by_id("nova", "servers", server_id)
 
-        return self.native.servers.update(server=server, name=name,
-                                          description=("Server with name {}".
-                                                       format(name)))
+        return self.native.servers.update(server=server, name=name)
 
     @uncache
     def server_delete(self):
-        server_id = self.keeper.get_random(self.cache["nova"]["flavors"])
+        server_id = self.keeper.get_random(self.cache["nova"]["servers"])
 
         # TO-DO: Make a normal warning logging
         if server_id is None:
@@ -879,6 +872,7 @@ class SpamGlance(object):
         self.spam.images = lambda: None
         self.spam.images.create = self.image_create
         self.spam.images.update = self.image_update
+        self.spam.images.delete = self.image_delete
 
     @cache
     def image_create(self):
@@ -891,16 +885,17 @@ class SpamGlance(object):
                                           container_format='bare',
                                           visibility='public')
         self.native.images.upload(image.id, '')
+
         return image
 
     def image_update(self):
+        if len(self.cache["glance"]["images"]) <= 1:
+            return
+
         while True:
             name = self.faker.word()
             if self.keeper.get_by_name("glance", "images", name) is None:
                 break
-
-        if len(self.cache["glance"]["images"]) == 1:
-            return
 
         while True:
             image_id = self.keeper.get_random(self.cache["glance"]["images"])
@@ -913,17 +908,21 @@ class SpamGlance(object):
             return
 
         image = self.native.images.update(image_id, name=name)
+
         return image
 
     @uncache
     def image_delete(self):
-        image_id = self.keeper.get_random(self.cache["glance"]["images"])
-
         # TO-DO: Make a normal warning logging
-        if image_id is None:
+        if len(self.cache["glance"]["images"]) <= 1:
             return
 
-        image = self.keeper.get_by_id("glance", "images", image_id)
-        self.native.images.delete(image)
+        while True:
+            image_id = self.keeper.get_random(self.cache["glance"]["images"])
+            image = self.keeper.get_by_id("glance", "images", image_id)
+            if image.name != "cirros-0.3.4-x86_64-uec":
+                break
+
+        self.native.images.delete(image_id)
 
         return image_id
