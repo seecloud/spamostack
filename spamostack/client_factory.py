@@ -146,6 +146,7 @@ class Neutron(object):
         self.native = client
 
         components = []
+
         actions = ["get", "list", "find", "update", "create", "delete"]
 
         for name in dir(self.native):

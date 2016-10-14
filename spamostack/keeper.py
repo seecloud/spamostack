@@ -170,6 +170,7 @@ class Keeper(object):
                         probe = getattr(el, param)
                     else:
                         probe = getattr(el, param)(**kwargs)
+
                     if func(probe):
                         result = el
                         break
@@ -195,15 +196,26 @@ class Keeper(object):
         @type component_names: `list(str)`
         """
 
-        admin_user_id = self.get_by_name("keystone", "users", "admin").id
+        exceptions = [self.get_by_name("keystone", "users", "admin").id,
+                      self.get_by_name("glance", "images",
+                                       "cirros-0.3.4-x86_64-uec").id]
+        binded_resources = {"neutron":
+                            ["subnets", "ports", "routers", "networks"]}
 
         for client_name in component_names:
             client = getattr(self.client_factory, client_name)()
-            for resource_name, resource in reversed(list(
-                    self.cache[client_name].iteritems())):
+
+            if client_name in binded_resources:
+                resources = binded_resources[client_name]
+            else:
+                resources = self.cache[client_name].keys()
+
+            for resource_name in resources:
                 resource_obj = getattr(client, resource_name)
-                for id in reversed(resource.keys()):
-                    if id != admin_user_id:
+                for id in self.cache[client_name][resource_name].keys():
+                    if id not in exceptions:
+                        if resource_name in ["volumes"]:
+                            resource_obj.detach(id)
                         try:
                             resource_obj.delete(id)
                         except Exception as exc:

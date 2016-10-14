@@ -27,7 +27,7 @@ from simulator import Simulator
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--pipe', dest='pipelines',
+parser.add_argument('--conf', dest='conf',
                     default='/etc/spamostack/conf.json',
                     help='Path to the config file with pipes')
 parser.add_argument('--db', dest='db', default='./db',
@@ -42,38 +42,41 @@ log.addHandler(logger.SpamStreamHandler())
 
 
 def main():
-    if args.pipelines:
-        with open(args.pipelines, 'r') as pipes_file:
-            pipelines = json.load(pipes_file,
-                                  object_pairs_hook=collections.OrderedDict)
+    try:
+        if args.conf:
+            with open(args.conf, 'r') as pipes_file:
+                conf = json.load(pipes_file,
+                                 object_pairs_hook=collections.OrderedDict)
 
-    simulators = []
-    cache = Cache(args.db)
+        simulators = []
+        cache = Cache(args.db)
 
-    admin_user = cache["users"]["admin"]
-    admin_user["auth_url"] = cache["api"]["auth_url"]
+        admin_user = cache["users"]["admin"]
+        admin_user["auth_url"] = cache["api"]["auth_url"]
 
-    admin_factory = ClientFactory(admin_user)
-    admin_keeper = Keeper(cache, admin_factory)
+        admin_factory = ClientFactory(admin_user)
+        admin_keeper = Keeper(cache, admin_factory)
 
-    if args.clean:
-        admin_keeper.clean(args.clean)
-        sys.exit()
+        if args.clean:
+            admin_keeper.clean(args.clean)
+            sys.exit()
 
-    # This section for default initialization of cirros image
-    (cache["glance"]["images"]
-     [admin_keeper.get_by_name("glance", "images",
-                               "cirros-0.3.4-x86_64-uec").id]) = False
-    for flavor in admin_factory.nova().flavors.list():
-        (cache["nova"]["flavors"][flavor.id]) = False
-    for security_group in admin_factory.nova().security_groups.list():
-        (cache["nova"]["security_groups"][security_group.id]) = False
+        # This section for default initialization of cirros image
+        (cache["glance"]["images"]
+         [admin_keeper.get_by_name("glance", "images",
+                                   "cirros-0.3.4-x86_64-uec").id]) = False
+        for flavor in admin_factory.nova().flavors.list():
+            (cache["nova"]["flavors"][flavor.id]) = False
 
-    for pipe_name, pipe in pipelines.iteritems():
-        simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
+        for pipe_name, pipe in conf.iteritems():
+            simulators.append(Simulator(pipe_name, pipe, cache, admin_keeper))
 
-    for simulator in simulators:
-        simulator.simulate()
+        for simulator in simulators:
+            simulator.simulate()
+    except KeyboardInterrupt:
+        print('\nThe process was interrupted by the user')
+        raise SystemExit
+
 
 if __name__ == "__main__":
     main()
