@@ -164,6 +164,7 @@ class Keeper(object):
         result = None
 
         if func is not None and param is not None:
+            result = []
             try:
                 for el in list(resource.list()):
                     if not kwargs:
@@ -172,8 +173,7 @@ class Keeper(object):
                         probe = getattr(el, param)(**kwargs)
 
                     if func(probe):
-                        result = el
-                        break
+                        result.append(el)
             except Exception:
                 pass
         elif func is None and param is not None:
@@ -197,6 +197,7 @@ class Keeper(object):
         """
 
         exceptions = [self.get_by_name("keystone", "users", "admin").id,
+                      self.get_by_name("keystone", "projects", "admin").id,
                       self.get_by_name("glance", "images",
                                        "cirros-0.3.4-x86_64-uec").id]
         binded_resources = {"neutron":

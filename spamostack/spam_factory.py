@@ -97,7 +97,16 @@ def uncache(func):
     return wrapper
 
 
-def come_up_subnet(neutron_subnets, length):
+def come_up_subnet(neutron_subnets, size):
+    """Come ups subnets with specific size
+
+    @param neutron_subnets: List of neutron subnets
+    @type neutron_subnets: `list(client_factory.Accessible)`
+
+    @param size: Size of future subnet
+    @type size: `int`
+    """
+
     subnets = []
 
     for neutron_subnet in neutron_subnets:
@@ -109,7 +118,7 @@ def come_up_subnet(neutron_subnets, length):
     subnets.insert(0, netaddr.IPAddress("192.0.0.0"))
     subnets.append(netaddr.IPAddress("192.255.255.255"))
 
-    max_length = 0
+    max_size = 0
     for start, end in zip(subnets[::2], subnets[1::2]):
         space_range = list(netaddr.IPRange(start, end))
         if str(start) != "192.0.0.0":
@@ -117,14 +126,14 @@ def come_up_subnet(neutron_subnets, length):
         elif str(end) != "192.255.255.255":
             space_range = space_range[:-1]
 
-        space_length = len(space_range)
-        if space_length > max_length:
-            max_length = space_length
+        space_size = len(space_range)
+        if space_size > max_size:
+            max_size = space_size
             start_ip = str(start)
             end_ip = str(end)
-        if space_length >= length:
+        if space_size >= size:
             return netaddr.iprange_to_cidrs(space_range[0],
-                                            space_range[length - 1])[0]
+                                            space_range[size - 1])[0]
 
     return netaddr.iprange_to_cidrs(start_ip, end_ip)[0]
 
@@ -137,7 +146,7 @@ class SpamFactory(client_factory.ClientFactory, object):
         @type cache: spamostack.cache.Cache
 
         @param user: User for client factory instance
-        @type user: `dict` or `User`
+        @type user: `dict`
 
         @param keeper: Reference to the keeper
         @type keeper: `keeper.Keeper`
@@ -150,35 +159,35 @@ class SpamFactory(client_factory.ClientFactory, object):
         self.faker = faker.Factory.create('en_US')
 
     def spam_keystone(self):
-        """Create Keystone client."""
+        """Create spam keystone client."""
 
         return SpamKeystone(self.cache, self.keystone(), self.faker,
                             self.keeper)
 
     def spam_neutron(self):
-        """Create Neutron client."""
+        """Create spam neutron client."""
 
         return SpamNeutron(self.cache, self.neutron(), self.faker, self.keeper)
 
     def spam_cinder(self):
-        """Create Cinder client."""
+        """Create spam cinder client."""
 
         return SpamCinder(self.cache, self.cinder(), self.faker, self.keeper)
 
     def spam_nova(self):
-        """Create Nova client."""
+        """Create spam nova client."""
 
         return SpamNova(self.cache, self.nova(), self.faker, self.keeper)
 
     def spam_glance(self):
-        """Create Glance client."""
+        """Create spam glance client."""
 
         return SpamGlance(self.cache, self.glance(), self.faker, self.keeper)
 
 
 class SpamKeystone(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Keystone` class instance.
+        """Create `SpamKeystone` class instance.
 
         @param cache: Cache
         @type cache: `cache.Cache`
@@ -215,18 +224,19 @@ class SpamKeystone(object):
     def spam_user_create(self):
         while True:
             name = self.faker.name()
-            if self.keeper.get_by_name("keystone", "users", name) is None:
+            if not self.keeper.get("keystone", "users", "name",
+                                   lambda x: x == name):
                 break
 
         password = self.faker.password()
         email = self.faker.safe_email()
-        project_id = self.keeper.get_random(self.cache["keystone"]["projects"])
+
+        project = self.keeper.get("keystone", "projects")
 
         # TO-DO: Make a normal warning logging
-        if project_id is None:
+        if not project:
             return
 
-        project = self.keeper.get_by_id("keystone", "projects", project_id)
         user = self.native.users.create(name=name, domain="default",
                                         password=password, email=email,
                                         description=("User with name {}".
@@ -246,20 +256,22 @@ class SpamKeystone(object):
         return user
 
     def spam_user_update(self):
-        # TO-DO: Make a normal warning logging
-        if len(self.cache["keystone"]["users"]) <= 1:
-            return
-
         while True:
             name = self.faker.name()
-            if self.keeper.get_by_name("keystone", "users", name) is None:
+            if not self.keeper.get("keystone", "users", "name",
+                                   lambda x: x == name):
                 break
 
-        while True:
-            user_id = self.keeper.get_random(self.cache["keystone"]["users"])
-            user = self.keeper.get_by_id("keystone", "users", user_id)
-            if user.name != "admin":
-                break
+        admin_id = self.keeper.client_factory.session.get_user_id()
+        users = self.keeper.get("keystone", "users", "id",
+                                (lambda x: x != admin_id and
+                                 x in self.cache["keystone"]["users"]))
+
+        # TO-DO: Make a normal warning logging
+        if len(users) > 0:
+            user = random.choice(users)
+        else:
+            return
 
         password = self.faker.password()
         email = self.faker.safe_email()
@@ -285,24 +297,26 @@ class SpamKeystone(object):
 
     @uncache
     def spam_user_delete(self):
+        admin_id = self.keeper.client_factory.session.get_user_id()
+        users = self.keeper.get("keystone", "users", "id",
+                                (lambda x: x != admin_id and
+                                 x in self.cache["keystone"]["users"]))
+
         # TO-DO: Make a normal warning logging
-        if len(self.cache["keystone"]["users"]) <= 1:
+        if len(users) > 0:
+            user = random.choice(users)
+        else:
             return
 
-        while True:
-            user_id = self.keeper.get_random(self.cache["keystone"]["users"])
-            user = self.keeper.get_by_id("keystone", "users", user_id)
-            if user.name != "admin":
-                break
-
         self.native.users.delete(user)
-        return user_id
+        return user.id
 
     @cache
     def spam_project_create(self):
         while True:
             name = self.faker.word()
-            if self.keeper.get_by_name("keystone", "projects", name) is None:
+            if not self.keeper.get("keystone", "projects", "name",
+                                   lambda x: x == name):
                 break
 
         project = self.native.projects.create(name=name, domain="default",
@@ -327,21 +341,22 @@ class SpamKeystone(object):
         return project
 
     def spam_project_update(self):
-        # TO-DO: Make a normal warning logging
-        if len(self.cache["keystone"]["projects"]) <= 1:
-            return
-
         while True:
             name = self.faker.word()
-            if self.keeper.get_by_name("keystone", "projects", name) is None:
+            if not self.keeper.get("keystone", "projects", "name",
+                                   lambda x: x == name):
                 break
 
-        while True:
-            project_id = self.keeper.get_random(
-                self.cache["keystone"]["projects"])
-            project = self.keeper.get_by_id("keystone", "projects", project_id)
-            if project.name != "admin":
-                break
+        admin_id = self.keeper.client_factory.session.get_project_id()
+        projects = self.keeper.get("keystone", "projects", "id",
+                                   (lambda x: x != admin_id and
+                                    x in self.cache["keystone"]["projects"]))
+
+        # TO-DO: Make a normal warning logging
+        if len(projects) > 0:
+            project = random.choice(projects)
+        else:
+            return
 
         return self.native.projects.update(project=project, name=name,
                                            domain="default",
@@ -351,24 +366,24 @@ class SpamKeystone(object):
 
     @uncache
     def spam_project_delete(self):
+        admin_id = self.keeper.client_factory.session.get_project_id()
+        projects = self.keeper.get("keystone", "projects", "id",
+                                   (lambda x: x != admin_id and
+                                    x in self.cache["keystone"]["projects"]))
+
         # TO-DO: Make a normal warning logging
-        if len(self.cache["keystone"]["projects"]) <= 1:
+        if len(projects) > 0:
+            project = random.choice(projects)
+        else:
             return
 
-        while True:
-            project_id = self.keeper.get_random(
-                self.cache["keystone"]["projects"])
-            project = self.keeper.get_by_id("keystone", "projects", project_id)
-            if project.name != "admin":
-                break
-
         self.native.projects.delete(project)
-        return project_id
+        return project.id
 
 
 class SpamNeutron(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Neutron` class instance.
+        """Create `SpamNeutron` class instance.
 
         @param cache: Cache
         @type cache: `cache.Cache`
@@ -638,7 +653,7 @@ class SpamNeutron(object):
 
 class SpamCinder(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Cinder` class instance.
+        """Create `SpamCinder` class instance.
 
         @param cache: Cache
         @type cache: `cache.Cache`
@@ -764,7 +779,7 @@ class SpamCinder(object):
 
 class SpamNova(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Nova` class instance.
+        """Create `SpamNova` class instance.
 
         @param cache: Cache
         @type cache: `cache.Cache`
@@ -891,7 +906,7 @@ class SpamNova(object):
 
 class SpamGlance(object):
     def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `Glance` class instance.
+        """Create `SpamGlance` class instance.
 
         @param cache: Cache
         @type cache: `cache.Cache`
