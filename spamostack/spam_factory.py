@@ -40,6 +40,10 @@ def cache(func):
             section = "routers"
         elif "port" in func.__name__:
             section = "ports"
+        elif "security_groups" in func.__name__:
+            section = "security_groups"
+        elif "subnet" in func.__name__:
+            section = "subnets"
         elif "flavor" in func.__name__:
             section = "flavors"
         elif "server" in func.__name__:
@@ -74,6 +78,8 @@ def uncache(func):
             section = "routers"
         elif "port" in func.__name__:
             section = "ports"
+        elif "security_groups" in func.__name__:
+            section = "security_groups"
         elif "subnet" in func.__name__:
             section = "subnets"
         elif "flavor" in func.__name__:
@@ -389,6 +395,7 @@ class SpamNeutron(object):
         self.spam.networks = lambda: None
         self.spam.routers = lambda: None
         self.spam.ports = lambda: None
+        self.spam.security_groups = lambda: None
         self.spam.subnets = lambda: None
 
         self.spam.networks.create = self.spam_network_create
@@ -402,6 +409,10 @@ class SpamNeutron(object):
         self.spam.ports.create = self.spam_port_create
         self.spam.ports.update = self.spam_port_update
         self.spam.ports.delete = self.spam_port_delete
+
+        self.spam.security_groups.create = self.spam_security_group_create
+        self.spam.security_groups.update = self.spam_security_group_update
+        self.spam.security_groups.delete = self.spam_security_group_delete
 
         self.spam.subnets.create = self.spam_subnet_create
         self.spam.subnets.update = self.spam_subnet_update
@@ -534,6 +545,41 @@ class SpamNeutron(object):
         self.native.ports.delete(port_id)
 
         return port_id
+
+    @cache
+    def spam_security_group_create(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "security_groups", name) is None:
+                break
+
+        return self.native.security_groups.create(name=name,
+                                                  description="Security group "
+                                                              "with name {}"
+                                                  .format(name))
+
+    def spam_security_group_update(self):
+        while True:
+            name = self.faker.word()
+            if self.keeper.get_by_name("neutron", "security_groups", name) is None:
+                break
+
+        return self.native.security_groups.create(name=name,
+                                                  description="Security group "
+                                                              "with name {}"
+                                                  .format(name))
+
+    @uncache
+    def spam_security_group_delete(self):
+        security_group_id = self.keeper.get_random(self.cache["neutron"]["security_groups"])
+
+        # TO-DO: Make a normal warning logging
+        if security_group_id is None:
+            return
+
+        self.native.security_groups.delete(security_group_id)
+
+        return security_group_id
 
     @cache
     def spam_subnet_create(self):
@@ -743,10 +789,6 @@ class SpamNova(object):
         self.spam.flavors.create = self.flavor_create
         self.spam.flavors.update = self.flavor_update
         self.spam.flavors.delete = self.flavor_delete
-
-        self.spam.security_groups = lambda: None
-        self.spam.security_groups.get = self.native.security_groups.get
-        self.spam.security_groups.find = self.native.security_groups.find
 
         self.spam.servers = lambda: None
         self.spam.servers.create = self.server_create

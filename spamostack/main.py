@@ -77,6 +77,5 @@ def main():
         print('\nThe process was interrupted by the user')
         raise SystemExit
 
-
 if __name__ == "__main__":
     main()
