@@ -550,7 +550,8 @@ class SpamNeutron(object):
     def spam_security_group_create(self):
         while True:
             name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "security_groups", name) is None:
+            if self.keeper.get_by_name(
+                    "neutron", "security_groups", name) is None:
                 break
 
         return self.native.security_groups.create(name=name,
@@ -561,7 +562,8 @@ class SpamNeutron(object):
     def spam_security_group_update(self):
         while True:
             name = self.faker.word()
-            if self.keeper.get_by_name("neutron", "security_groups", name) is None:
+            if self.keeper.get_by_name(
+                    "neutron", "security_groups", name) is None:
                 break
 
         return self.native.security_groups.create(name=name,
@@ -571,7 +573,8 @@ class SpamNeutron(object):
 
     @uncache
     def spam_security_group_delete(self):
-        security_group_id = self.keeper.get_random(self.cache["neutron"]["security_groups"])
+        security_group_id = self.keeper.get_random(
+            self.cache["neutron"]["security_groups"])
 
         # TO-DO: Make a normal warning logging
         if security_group_id is None:
