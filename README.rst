@@ -16,13 +16,13 @@ For installation just type it in the project folder ``pip install -e .``
 +===========+======+
 | Keystone  | Done |
 +-----------+------+
-| Nova      | WIP  |
+| Nova      | Done |
 +-----------+------+
-| Glance    | WIP  |
+| Glance    | Done |
 +-----------+------+
-| Neutron   | WIP  |
+| Neutron   | Done |
 +-----------+------+
-| Cinder    | WIP  |
+| Cinder    | Done |
 +-----------+------+
 
 Configuring spamostack
@@ -30,7 +30,6 @@ Configuring spamostack
 
 Please, configure your settings by changing config file in the ``/etc/spamostack`` folder.
 File ``openrc`` is needed for connecting to your cloud, and ``conf.json`` file is needed for configuring pipelines.
-
 
 Configuring keystone
 --------------------
@@ -76,3 +75,20 @@ Alternatively you could pass some arguments in the ``argparse`` form:
 ``spamostack --conf path/to/pipeline/file --db path/to/database``
 
 And for cleaning that mess use ``spamostack --clean component_name`` for ex: ``spamostack --clean keystone``.
+=======
+Available resources
+-------------------
+
++-----------+----------------------------------------------------+
+| Component | Resource                                           |
++===========+====================================================+
+| Keystone  | projects, users                                    |
++-----------+----------------------------------------------------+
+| Nova      | flavors, servers                                   |
++-----------+----------------------------------------------------+
+| Glance    | images                                             |
++-----------+----------------------------------------------------+
+| Neutron   | networks, subnets, routers, ports, security_groups |
++-----------+----------------------------------------------------+
+| Cinder    | volumes                                            |
++-----------+----------------------------------------------------+
