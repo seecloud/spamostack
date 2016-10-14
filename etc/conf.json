@@ -38,15 +38,21 @@
       },
       "ports":
       {
-        "create": [10, 5, 1],
-        "update": [10, 3, 1],
-        "delete": [10, 2, 1]
+        "create": [15, 5, 1],
+        "update": [15, 3, 1],
+        "delete": [15, 2, 1]
       },
       "subnets":
       {
         "create": [10, 6, 1],
         "update": [10, 2, 1],
         "delete": [10, 1, 1]
+      },
+      "security_groups":
+      {
+        "create": [10, 3, 1],
+        "update": [10, 1, 1],
+        "delete": [15, 2, 1]
       }
     }
   },
