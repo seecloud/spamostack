@@ -5,36 +5,36 @@
     {
       "projects":
       {
-        "create": [15, 1, 1],
-        "update": [15, 1, 1]
+        "create": [10, 1, 1],
+        "update": [10, 1, 1]
       },
       "users":
       {
-        "create": [15, 2, 1],
-        "update": [30, 2, 1]
+        "create": [10, 2, 1],
+        "update": [20, 2, 1]
       }
     },
     "cinder":
     {
       "volumes":
       {
-        "create": [15, 2, 1],
-        "update": [15, 1, 1]
+        "create": [10, 2, 1],
+        "update": [10, 1, 1]
       }
     },
     "neutron":
     {
       "networks":
       {
-        "create": [15, 2, 1],
-        "update": [15, 1, 1],
-        "delete": [15, 1, 1]
+        "create": [10, 2, 1],
+        "update": [10, 1, 1],
+        "delete": [10, 1, 1]
       },
       "routers":
       {
-        "create": [15, 2, 1],
-        "update": [15, 2, 1],
-        "delete": [15, 1, 1]
+        "create": [10, 2, 1],
+        "update": [10, 2, 1],
+        "delete": [10, 1, 1]
       },
       "ports":
       {
@@ -44,7 +44,9 @@
       },
       "subnets":
       {
-        "create": [15, 5, 1]
+        "create": [10, 6, 1],
+        "update": [10, 2, 1],
+        "delete": [10, 1, 1]
       }
     }
   },
@@ -53,14 +55,14 @@
     {
       "projects":
       {
-        "create": [15, 2, 1],
-        "update": [15, 1, 1],
-        "delete": [15, 1, 1]
+        "create": [10, 2, 1],
+        "update": [10, 1, 1],
+        "delete": [10, 1, 1]
       },
       "users":
       {
-        "create": [15, 2, 1],
-        "update": [30, 2, 1]
+        "create": [10, 2, 1],
+        "update": [10, 2, 1]
       }
     },
     "nova":
@@ -71,26 +73,28 @@
       },
       "servers":
       {
-        "create": [10, 1, 1],
-        "update": [10, 1, 1]
+        "create": [10, 2, 1],
+        "update": [10, 1, 1],
+        "delete": [10, 1, 1]
       }
     },
     "glance":
     {
       "images":
       {
-        "create": [10, 1, 1],
-        "update": [10, 2, 1]
+        "create": [10, 2, 1],
+        "update": [10, 2, 1],
+        "delete": [10, 1, 1]
       }
     },
     "cinder":
     {
       "volumes":
       {
-        "create": [15, 2, 1],
-        "update": [15, 1, 1],
-        "attach": [15, 1, 1],
-        "delete": [15, 1, 1]
+        "create": [10, 2, 1],
+        "update": [10, 1, 1],
+        "attach": [10, 1, 1],
+        "delete": [10, 1, 1]
       }
     }
   }
