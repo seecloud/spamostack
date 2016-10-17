@@ -13,7 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import random
+
+
+log = logging.getLogger()
 
 
 class Keeper(object):
@@ -34,6 +38,7 @@ class Keeper(object):
     def default_init(self):
         """Initialize the default admin user."""
 
+        log.debug("Start default initialization for admin user")
         client = getattr(self.client_factory, "keystone")()
         user = client.users.find(name="admin")
         project = client.projects.find(name="admin")
@@ -88,6 +93,8 @@ class Keeper(object):
         resource = getattr(client, resource_name)
         result = None
 
+        log.info("Trying get info about {resource} from {client}".
+                 format(resource=resource_name, client=client_name))
         if func is not None and param is not None:
             result = []
             try:
@@ -99,7 +106,8 @@ class Keeper(object):
 
                     if func(probe):
                         result.append(el)
-            except Exception:
+            except Exception as exc:
+                log.critical("Exception: {}".format(exc))
                 pass
         elif func is None and param is not None:
             try:
@@ -107,7 +115,8 @@ class Keeper(object):
                     result = getattr(resource, param)
                 else:
                     result = getattr(resource, param)(*args, **kwargs)
-            except Exception:
+            except Exception as exc:
+                log.critical("Exception: {}".format(exc))
                 pass
         elif func is not None and param is None:
             result = []
@@ -119,7 +128,8 @@ class Keeper(object):
 
                     if func(*params):
                         result.append(el)
-            except Exception:
+            except Exception as exc:
+                log.critical("Exception: ".format(exc))
                 pass
         elif func is None and param is None:
             possibilities = list(resource.list())
@@ -146,6 +156,7 @@ class Keeper(object):
                             ["subnets", "ports", "routers", "networks"]}
 
         for client_name in component_names:
+            log.debug("Start cleaning for {} client".format(client_name))
             client = getattr(self.client_factory, client_name)()
 
             if client_name in binded_resources:
@@ -154,6 +165,7 @@ class Keeper(object):
                 resources = self.cache[client_name].keys()
 
             for resource_name in resources:
+                log.debug("Cleaning {} resource".format(resource_name))
                 resource_obj = getattr(client, resource_name)
                 for id in self.cache[client_name][resource_name].keys():
                     if id not in exceptions:

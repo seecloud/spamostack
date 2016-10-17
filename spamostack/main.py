@@ -32,18 +32,24 @@ parser.add_argument('--conf', dest='conf',
                     help='Path to the config file with pipes')
 parser.add_argument('--db', dest='db', default='./db',
                     help='Path to the database directory')
+parser.add_argument('--verbose', action='store_true',
+                    help='Increase verbose output')
 parser.add_argument('--clean', dest='clean', nargs='+',
                     help='Path to the database directory')
 args = parser.parse_args()
 
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+if args.verbose:
+    log.setLevel(logging.DEBUG)
+else:
+    log.setLevel(logging.INFO)
 log.addHandler(logger.SpamStreamHandler())
 
 
 def main():
     try:
         if args.conf:
+            log.info("Reading conf from {}".format(args.conf))
             with open(args.conf, 'r') as pipes_file:
                 conf = json.load(pipes_file,
                                  object_pairs_hook=collections.OrderedDict)
@@ -58,15 +64,19 @@ def main():
         admin_keeper = Keeper(cache, admin_factory)
 
         if args.clean:
+            log.info("Starting cleanup")
             admin_keeper.clean(args.clean)
             sys.exit()
 
         # This section for default initialization of cirros image
+        log.debug("Caching default cirros image")
         (cache["glance"]["images"]
          [admin_keeper.get(
              "glance", "images", "name",
              lambda x: x == "cirros-0.3.4-x86_64-uec")[0].id]) = False
         for flavor in admin_factory.nova().flavors.list():
+            log.debug("Caching flavor with name {name}".
+                      format(name=flavor.name))
             (cache["nova"]["flavors"][flavor.id]) = False
 
         for pipe_name, pipe in conf.iteritems():
