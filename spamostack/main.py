@@ -63,8 +63,9 @@ def main():
 
         # This section for default initialization of cirros image
         (cache["glance"]["images"]
-         [admin_keeper.get_by_name("glance", "images",
-                                   "cirros-0.3.4-x86_64-uec").id]) = False
+         [admin_keeper.get(
+             "glance", "images", "name",
+             lambda x: x == "cirros-0.3.4-x86_64-uec")[0].id]) = False
         for flavor in admin_factory.nova().flavors.list():
             (cache["nova"]["flavors"][flavor.id]) = False
 

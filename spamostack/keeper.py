@@ -54,97 +54,22 @@ class Keeper(object):
             ram=-1, security_group_rules=-1, security_groups=-1,
             server_group_members=-1, server_groups=-1)
 
-    def get_by_id(self, client_name, resource_name, id):
-        """Get resource by id
-
-        @param client_name: Name of the client
-        @type client_name: `str`
-
-        @param resource_name: Name of the resource under specific component
-        @type resource_name: `str`
-
-        @param id: ID of the resource
-        @type id: `str`
-        """
-
-        client = getattr(self.client_factory, client_name)()
-        resource = getattr(client, resource_name)
-        found = None
-        try:
-            found = getattr(resource, "get")(id)
-        except Exception:
-            pass
-        finally:
-            return found
-
-    def get_by_name(self, client_name, resource_name, name):
-        """Get resource by name
-
-        @param client_name: Name of the client
-        @type client_name: `str`
-
-        @param resource_name: Name of the resource under specific component
-        @type resource_name: `str`
-
-        @param name: Name of the resource
-        @type name: `str`
-        """
-
-        client = getattr(self.client_factory, client_name)()
-        resource = getattr(client, resource_name)
-        found = None
-        try:
-            found = getattr(resource, "find")(name=name)
-        except Exception:
-            pass
-        finally:
-            return found
-
-    def get_unused(self, resource):
-        """Get unused resource
-
-        @param resource: Part of the cache
-        @type resource: `str`
-        """
-
-        for key, value in resource.iteritems():
-            if value is False:
-                return key
-
-    def get_used(self, resource):
-        """Get used resource
-
-        @param resource: Part of the cache
-        @type resource: `str`
-        """
-
-        for key, value in resource.iteritems():
-            if value is True:
-                return key
-
-    def get_random(self, resource):
-        """Get random resource
-
-        @param resource: Part of the cache
-        @type resource: `str`
-        """
-
-        if len(resource.keys()) == 0:
-            return
-
-        return random.choice(resource.keys())
-
-    def get(self, client_name, resource_name, param=None, func=None, **kwargs):
+    def get(self, client_name, resource_name, param=None, func=None,
+            *args, **kwargs):
         """Get a resource.
 
         If `param` and `func` is not `None` then `param` gets retrieve
         with **kwargs as arguments then passes result to the `func`
-        as an argument and then returns it as result.
+        as an argument and if `func` passes as `True`
+        then returns it as result.
 
-        If `func` is `None` then `param` gets retrieve with **kwargs and
+        If `func` is `None` then `param` gets retrieve with *args, **kwargs and
         returns it as result.
 
-        If `param` is `None` then returns a random resource.
+        If `param` is `None` then `func` gets retrieve with *args, **kwargs and
+        if `func` passes as `True` then returns it as result.
+
+        If `param` and `func` is `None` then returns a random resource.
 
         @param client_name: Name of the client
         @type client_name: `str`
@@ -167,10 +92,10 @@ class Keeper(object):
             result = []
             try:
                 for el in list(resource.list()):
-                    if not kwargs:
+                    if not args and not kwargs:
                         probe = getattr(el, param)
                     else:
-                        probe = getattr(el, param)(**kwargs)
+                        probe = getattr(el, param)(*args, **kwargs)
 
                     if func(probe):
                         result.append(el)
@@ -178,10 +103,25 @@ class Keeper(object):
                 pass
         elif func is None and param is not None:
             try:
-                result = getattr(resource, param)(**kwargs)
+                if not args and not kwargs:
+                    result = getattr(resource, param)
+                else:
+                    result = getattr(resource, param)(*args, **kwargs)
             except Exception:
                 pass
-        elif param is None:
+        elif func is not None and param is None:
+            result = []
+            try:
+                for el in list(resource.list()):
+                    params = []
+                    for arg in args:
+                        params.append(getattr(el, arg))
+
+                    if func(*params):
+                        result.append(el)
+            except Exception:
+                pass
+        elif func is None and param is None:
             possibilities = list(resource.list())
             if len(possibilities) > 0:
                 result = random.choice(possibilities)
@@ -196,10 +136,12 @@ class Keeper(object):
         @type component_names: `list(str)`
         """
 
-        exceptions = [self.get_by_name("keystone", "users", "admin").id,
-                      self.get_by_name("keystone", "projects", "admin").id,
-                      self.get_by_name("glance", "images",
-                                       "cirros-0.3.4-x86_64-uec").id]
+        exceptions = [self.get("keystone", "users", "name",
+                               lambda x: x == "admin")[0].id,
+                      self.get("keystone", "projects", "name",
+                               lambda x: x == "admin")[0].id,
+                      self.get("glance", "images", "name",
+                               lambda x: x == "cirros-0.3.4-x86_64-uec")[0].id]
         binded_resources = {"neutron":
                             ["subnets", "ports", "routers", "networks"]}
 

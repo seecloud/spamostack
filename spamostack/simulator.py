@@ -48,8 +48,10 @@ class Simulator(object):
         self.pipeline = pipeline
         self.cache = cache
         self.keeper = keeper
-        unused_id = self.keeper.get_random(self.cache["keystone"]["users"])
-        user = self.keeper.get_by_id("keystone", "users", unused_id)
+        users = self.keeper.get(
+            "keystone", "users", "id",
+            lambda x: x in self.cache["keystone"]["users"])
+        user = random.choice(users)
         self.user = self.cache["users"][user.name]
         self.user["auth_url"] = self.cache["api"]["auth_url"]
         self.client_factory = spam_factory.SpamFactory(self.cache, self.user,
