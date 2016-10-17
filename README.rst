@@ -31,18 +31,6 @@ Configuring spamostack
 Please, configure your settings by changing config file in the ``/etc/spamostack`` folder.
 File ``openrc`` is needed for connecting to your cloud, and ``conf.json`` file is needed for configuring pipelines.
 
-Using spamostack
-----------------
-
-1. Run ``source /etc/spamostack/openrc``
-2. Just run it with ``spamostack``. Config file with pipelines will be read from the ``/etc/spamostack/conf.json`` file.
-
-Alternatively you could pass some arguments in the ``argparse`` form:
-
-``spamostack --conf path/to/pipeline/file --db path/to/database``
-
-And for cleaning that mess use ``spamostack --clean component_name`` for ex: ``spamostack --clean keystone``.
-
 Configuring keystone
 --------------------
 
@@ -76,19 +64,31 @@ That means, that spamostack will:
 - Update 2 users in 120 seconds and do it twice
 - Delete 1 user in 30 seconds and do it once
 
+Using spamostack
+----------------
+
+1. Run ``source /etc/spamostack/openrc``
+2. Just run it with ``spamostack``. Config file with pipelines will be read from the ``/etc/spamostack/conf.json`` file.
+
+Alternatively you could pass some arguments in the ``argparse`` form:
+
+``spamostack --conf path/to/pipeline/file --db path/to/database``
+
+And for cleaning that mess use ``spamostack --clean component_name`` for ex: ``spamostack --clean keystone``.
+=======
 Available resources
 -------------------
 
 +-----------+----------------------------------------------------+
 | Component | Resource                                           |
 +===========+====================================================+
-| Keystone  | Projects, users                                    |
+| Keystone  | projects, users                                    |
 +-----------+----------------------------------------------------+
-| Nova      | Flavors, servers                                   |
+| Nova      | flavors, servers                                   |
 +-----------+----------------------------------------------------+
-| Glance    | Images                                             |
+| Glance    | images                                             |
 +-----------+----------------------------------------------------+
-| Neutron   | Networks, subnets, routers, ports, security_groups |
+| Neutron   | networks, subnets, routers, ports, security_groups |
 +-----------+----------------------------------------------------+
-| Cinder    | Volumes                                            |
+| Cinder    | volumes                                            |
 +-----------+----------------------------------------------------+

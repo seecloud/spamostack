@@ -31,7 +31,7 @@ class ClientFactory(object):
         """Create instance of `ClientFactory` class
 
         @param user: User for client factory instance
-        @type user: `dict` or `User`
+        @type user: `dict`
         """
 
         self.auth = v3.Password(**user)
@@ -43,31 +43,31 @@ class ClientFactory(object):
         self.os_image_api_version = os_image_api_version
 
     def keystone(self):
-        """Create Keystone client."""
+        """Create keystone client."""
 
         return Keystone(keystone_client.Client(self.os_identity_api_version,
                                                session=self.session))
 
     def neutron(self):
-        """Create Neutron client."""
+        """Create neutron client."""
 
         return Neutron(neutron_client.Client(self.os_network_api_version,
                                              session=self.session))
 
     def cinder(self):
-        """Create Cinder client."""
+        """Create cinder client."""
 
         return Cinder(cinder_client.Client(self.os_volume_api_version,
                                            session=self.session))
 
     def nova(self):
-        """Create Nova client."""
+        """Create nova client."""
 
         return Nova(nova_client.Client(self.os_compute_api_version,
                                        session=self.session))
 
     def glance(self):
-        """Create Glance client."""
+        """Create glance client."""
 
         return Glance(glance_client.Client(self.os_image_api_version,
                                            session=self.session))
@@ -75,6 +75,10 @@ class ClientFactory(object):
 
 class Accessible(dict):
     def __init__(self, *args, **kwargs):
+        """Create an instance of `Accessible` class.
+
+        That class uses as a wrapper for neutron client.
+        """
         super(Accessible, self).__init__(*args, **kwargs)
         for arg in args:
             if isinstance(arg, dict):
@@ -146,6 +150,7 @@ class Neutron(object):
         self.native = client
 
         components = []
+
         actions = ["get", "list", "find", "update", "create", "delete"]
 
         for name in dir(self.native):
