@@ -75,7 +75,7 @@ Alternatively you could pass some arguments in the ``argparse`` form:
 ``spamostack --conf path/to/pipeline/file --db path/to/database``
 
 And for cleaning that mess use ``spamostack --clean component_name`` for ex: ``spamostack --clean keystone``.
-=======
+
 Available resources
 -------------------
 

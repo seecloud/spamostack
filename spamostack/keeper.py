@@ -136,16 +136,25 @@ class Keeper(object):
         @type component_names: `list(str)`
         """
 
+        existing_components = ["cinder", "glance", "keystone", "neutron",
+                               "nova"]
+
+        binded_resources = {"neutron":
+                            ["subnets", "ports", "routers", "networks"]}
+
         exceptions = [self.get("keystone", "users", "name",
                                lambda x: x == "admin")[0].id,
                       self.get("keystone", "projects", "name",
                                lambda x: x == "admin")[0].id,
                       self.get("glance", "images", "name",
                                lambda x: x == "cirros-0.3.4-x86_64-uec")[0].id]
-        binded_resources = {"neutron":
-                            ["subnets", "ports", "routers", "networks"]}
 
-        for client_name in component_names:
+        if component_names == ["all"]:
+            components = existing_components
+        else:
+            components = component_names
+
+        for client_name in components:
             client = getattr(self.client_factory, client_name)()
 
             if client_name in binded_resources:
