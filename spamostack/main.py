@@ -19,8 +19,10 @@ import json
 import logging
 import sys
 
+
 from cache import Cache
 from client_factory import ClientFactory
+import coloredlogs
 from keeper import Keeper
 import logger
 from simulator import Simulator
@@ -41,9 +43,12 @@ args = parser.parse_args()
 log = logging.getLogger()
 if args.verbose:
     log.setLevel(logging.DEBUG)
+    level = 'DEBUG'
 else:
     log.setLevel(logging.INFO)
+    level = 'INFO'
 log.addHandler(logger.SpamStreamHandler())
+coloredlogs.install(level=level)
 
 
 def main():
