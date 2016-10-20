@@ -22,6 +22,7 @@ from keystoneauth1 import session
 from keystoneclient import client as keystone_client
 from neutronclient.neutron import client as neutron_client
 from novaclient import client as nova_client
+from swiftclient import client as swift_client
 
 
 class ClientFactory(object):
@@ -34,6 +35,7 @@ class ClientFactory(object):
         @type user: `dict`
         """
 
+        self.user = user
         self.auth = v3.Password(**user)
         self.session = session.Session(auth=self.auth)
         self.os_identity_api_version = os_identity_api_version
@@ -41,6 +43,18 @@ class ClientFactory(object):
         self.os_volume_api_version = os_volume_api_version
         self.os_compute_api_version = os_compute_api_version
         self.os_image_api_version = os_image_api_version
+
+    def cinder(self):
+        """Create cinder client."""
+
+        return Cinder(cinder_client.Client(self.os_volume_api_version,
+                                           session=self.session))
+
+    def glance(self):
+        """Create glance client."""
+
+        return Glance(glance_client.Client(self.os_image_api_version,
+                                           session=self.session))
 
     def keystone(self):
         """Create keystone client."""
@@ -54,23 +68,19 @@ class ClientFactory(object):
         return Neutron(neutron_client.Client(self.os_network_api_version,
                                              session=self.session))
 
-    def cinder(self):
-        """Create cinder client."""
-
-        return Cinder(cinder_client.Client(self.os_volume_api_version,
-                                           session=self.session))
-
     def nova(self):
         """Create nova client."""
 
         return Nova(nova_client.Client(self.os_compute_api_version,
                                        session=self.session))
 
-    def glance(self):
-        """Create glance client."""
+    def swift(self):
+        """Create swift client."""
 
-        return Glance(glance_client.Client(self.os_image_api_version,
-                                           session=self.session))
+        return Swift(swift_client.Connection(
+            authurl=self.user["auth_url"], user=self.user["username"],
+            key=self.user["password"], tenant_name=self.user["project_name"],
+            auth_version=self.os_identity_api_version))
 
 
 class Accessible(dict):
@@ -107,20 +117,27 @@ class Accessible(dict):
         del self.__dict__[key]
 
 
-def _obj_to_accessible(component):
+def _obj_to_accessible(component=None):
     def obj_to_accessible(func):
         def wrapper(*args, **kwargs):
-            return Accessible(func(*args, **kwargs)[component])
+            if component:
+                acc_obj = Accessible(func(*args, **kwargs)[component])
+            else:
+                acc_obj = Accessible(func(*args, **kwargs))
+            return acc_obj
         return wrapper
     return obj_to_accessible
 
 
-def _lst_to_accessible(component):
+def _lst_to_accessible(component=None):
     def lst_to_accessible(func):
         def wrapper(*args, **kwargs):
             result = []
-            for el in func(*args, **kwargs)[component]:
-                result.append(Accessible(el))
+            for el in func(*args, **kwargs):
+                if component:
+                    result.append(Accessible(el[component]))
+                else:
+                    result.append(Accessible(el))
             return result
         return wrapper
     return lst_to_accessible
@@ -133,6 +150,30 @@ def _to_body(component, **kwargs):
         body[component][key] = value
 
     return body
+
+
+class Cinder(object):
+    def __init__(self, client):
+        self.native = client
+
+        for name in dir(self.native):
+            if not name.startswith("__"):
+                value = getattr(self.native, name)
+                setattr(self, name, value)
+
+
+class Glance(object):
+    def __init__(self, client):
+        self.native = client
+
+        for name in dir(self.native):
+            if not name.startswith("__"):
+                value = getattr(self.native, name)
+                setattr(self, name, value)
+        self.images.find = self.find
+
+    def find(self, **kwargs):
+        return list(self.native.images.list(filters=kwargs))[0]
 
 
 class Keystone(object):
@@ -149,9 +190,8 @@ class Neutron(object):
     def __init__(self, client):
         self.native = client
 
+        actions = ["create", "delete", "find", "get", "list", "update"]
         components = []
-
-        actions = ["get", "list", "find", "update", "create", "delete"]
 
         for name in dir(self.native):
             if not name.startswith("__") and name.startswith("show"):
@@ -1389,16 +1429,6 @@ class Neutron(object):
             id, _to_body("quota", **kwargs))
 
 
-class Cinder(object):
-    def __init__(self, client):
-        self.native = client
-
-        for name in dir(self.native):
-            if not name.startswith("__"):
-                value = getattr(self.native, name)
-                setattr(self, name, value)
-
-
 class Nova(object):
     def __init__(self, client):
         self.native = client
@@ -1409,15 +1439,205 @@ class Nova(object):
                 setattr(self, name, value)
 
 
-class Glance(object):
+class Swift(object):
     def __init__(self, client):
         self.native = client
 
-        for name in dir(self.native):
-            if not name.startswith("__"):
-                value = getattr(self.native, name)
-                setattr(self, name, value)
-        self.images.find = self.find
+        actions = ["create", "delete", "find", "get", "list", "update"]
+        components = ["container", "object"]
 
-    def find(self, **kwargs):
-        return list(self.native.images.list(filters=kwargs))[0]
+        self.containers = lambda: None
+        self.objects = lambda: None
+
+        for component in components:
+            component_obj = getattr(self, component + "s")
+            for action in actions:
+                method = getattr(self, "_{0}_{1}".format(component, action))
+                setattr(component_obj, action, method)
+
+    def _container_create(self, name=None, headers=None, response_dict=None,
+                          query_string=None):
+        self.native.put_container(name, headers, response_dict, query_string)
+
+        return self.containers.get(name)
+
+    def _container_delete(self, container, response_dict=None,
+                          query_string=None):
+
+        if isinstance(container, str) or isinstance(container, unicode):
+            to_delete = container
+        elif isinstance(container, Accessible):
+            to_delete = container.name
+        else:
+            return
+
+        return self.native.delete_container(to_delete, response_dict,
+                                            query_string)
+
+    def _container_find(self, **kwargs):
+        return self.containers.list(**kwargs)
+
+    @_obj_to_accessible()
+    def _container_get(self, container, marker=None, limit=None, prefix=None,
+                       delimiter=None, end_marker=None, path=None,
+                       full_listing=False, headers=None, query_string=None):
+
+        if isinstance(container, str) or isinstance(container, unicode):
+            to_get = container
+        elif isinstance(container, Accessible):
+            to_get = container.name
+        else:
+            return
+
+        got = self.native.get_container(
+            to_get, marker, limit, prefix, delimiter, end_marker, path,
+            full_listing, headers, query_string)[0]
+        got["id"] = got["x-trans-id"]
+        got["name"] = to_get
+
+        return got
+
+    def _container_list(self, marker=None, limit=None, prefix=None,
+                        end_marker=None, full_listing=False, **filter):
+
+        filtered = []
+        listed = self.native.get_account(marker, limit, prefix, end_marker,
+                                         full_listing)[1]
+
+        for el in listed:
+            container = self.containers.get(el["name"])
+            if filter.viewitems() <= container.viewitems():
+                filtered.append(container)
+
+        return filtered
+
+    def _container_update(self, container, headers, response_dict=None):
+        if isinstance(container, str) or isinstance(container, unicode):
+            to_update = container
+        elif isinstance(container, Accessible):
+            to_update = container.name
+        else:
+            return
+
+        self.native.post_container(to_update, headers, response_dict)
+
+        return self.containers.get(to_update)
+
+    # ----------------------------------------------------------------------- #
+
+    def _object_create(self, container, name, content, content_length=None,
+                       etag=None, chunk_size=None, content_type=None,
+                       headers=None, query_string=None, response_dict=None):
+
+        if isinstance(container, str) or isinstance(container, unicode):
+            in_container = container
+        elif isinstance(container, Accessible):
+            in_container = container.name
+        else:
+            return
+
+        self.native.put_object(
+            in_container, name, content, content_length, etag, chunk_size,
+            content_type, headers, query_string, response_dict)
+
+        return self.objects.get(in_container, name)
+
+    def _object_delete(self, container, object, query_string=None,
+                       response_dict=None):
+
+        if isinstance(container, str) or isinstance(container, unicode):
+            in_container = container
+        elif isinstance(container, Accessible):
+            in_container = container.name
+        else:
+            return
+
+        if isinstance(object, str) or isinstance(object, unicode):
+            to_delete = object
+        elif isinstance(object, Accessible):
+            to_delete = object.name
+        else:
+            return
+
+        return self.native.delete_object(in_container, to_delete, query_string,
+                                         response_dict)
+
+    def _object_find(self, container, **kwargs):
+        if isinstance(container, str) or isinstance(container, unicode):
+            in_container = container
+        elif isinstance(container, Accessible):
+            in_container = container.name
+        else:
+            return
+
+        return self.objects.list(in_container, **kwargs)
+
+    @_obj_to_accessible()
+    def _object_get(self, container, object, resp_chunk_size=None,
+                    query_string=None, response_dict=None, headers=None):
+
+        if isinstance(container, str) or isinstance(container, unicode):
+            in_container = container
+        elif isinstance(container, Accessible):
+            in_container = container.name
+        else:
+            return
+
+        if isinstance(object, str) or isinstance(object, unicode):
+            to_get = object
+        elif isinstance(object, Accessible):
+            to_get = object.name
+        else:
+            return
+
+        got = self.native.get_object(in_container, to_get, resp_chunk_size,
+                                     query_string, response_dict,
+                                     headers)[0]
+        got["id"] = got["x-trans-id"]
+        got["name"] = to_get
+
+        return got
+
+    def _object_list(self, container, marker=None, limit=None, prefix=None,
+                     delimiter=None, end_marker=None, path=None,
+                     full_listing=False, headers=None, query_string=None,
+                     **filter):
+
+        if isinstance(container, str) or isinstance(container, unicode):
+            in_container = container
+        elif isinstance(container, Accessible):
+            in_container = container.name
+        else:
+            return
+
+        filtered = []
+        listed = self.native.get_container(
+            in_container, marker, limit, prefix, delimiter, end_marker, path,
+            full_listing, headers, query_string)[1]
+
+        for el in listed:
+            object = self.objects.get(in_container, el["name"])
+            if filter.viewitems() <= object.viewitems():
+                filtered.append(object)
+
+        return [self.objects.get(in_container, el["name"]) for el in filtered]
+
+    def _object_update(self, container, object, headers, response_dict=None):
+        if isinstance(container, str) or isinstance(container, unicode):
+            in_container = container
+        elif isinstance(container, Accessible):
+            in_container = container.name
+        else:
+            return
+
+        if isinstance(object, str) or isinstance(object, unicode):
+            to_update = object
+        elif isinstance(object, Accessible):
+            to_update = object.name
+        else:
+            return
+
+        self.native.post_object(in_container, to_update, headers,
+                                response_dict)
+
+        return self.objects.get(in_container, to_update)
