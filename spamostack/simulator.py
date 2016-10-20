@@ -13,11 +13,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import random
 import threading
 import time
 
 import spam_factory
+
+log = logging.getLogger()
 
 
 def threader(func):
@@ -71,6 +74,7 @@ class Simulator(object):
                     self.rotate(attr, *value)
 
         for pipe_client, pipe in self.pipeline.iteritems():
+            log.debug("Creating client {}".format(pipe_client))
             client = getattr(self.client_factory, "spam_" + pipe_client)()
             loop("spam_" + pipe_client, pipe, client.spam)
 
