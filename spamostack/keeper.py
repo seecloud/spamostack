@@ -166,6 +166,7 @@ class Keeper(object):
 
         for client_name in components:
             log.debug("Start cleaning for {} client".format(client_name))
+
             client = getattr(self.client_factory, client_name)()
 
             if client_name in binded_resources:
