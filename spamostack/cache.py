@@ -141,6 +141,24 @@ class Cache(collections.MutableMapping, object):
                              "os_volume_api_version":
                              os.environ['OS_VOLUME_API_VERSION']}
 
+        cinder_path = os.path.join(self.path, "cinder")
+        if not os.path.exists(cinder_path):
+            os.mkdir(cinder_path)
+
+        self.cache["cinder"]["volumes"] = LevelCache(
+            os.path.join(cinder_path, "volumes"))
+
+        # ------------------------------------------------------------------- #
+
+        glance_path = os.path.join(self.path, "glance")
+        if not os.path.exists(glance_path):
+            os.mkdir(glance_path)
+
+        self.cache["glance"]["images"] = LevelCache(
+            os.path.join(glance_path, "images"))
+
+        # ------------------------------------------------------------------- #
+
         keystone_path = os.path.join(self.path, "keystone")
         if not os.path.exists(keystone_path):
             os.mkdir(keystone_path)
@@ -149,28 +167,29 @@ class Cache(collections.MutableMapping, object):
             self.cache["keystone"][el] = LevelCache(
                 os.path.join(keystone_path, el))
 
-        cinder_path = os.path.join(self.path, "cinder")
-        if not os.path.exists(cinder_path):
-            os.mkdir(cinder_path)
-        self.cache["cinder"]["volumes"] = LevelCache(
-            os.path.join(cinder_path, "volumes"))
+        # ------------------------------------------------------------------- #
 
         neutron_path = os.path.join(self.path, "neutron")
         if not os.path.exists(neutron_path):
             os.mkdir(neutron_path)
-        for resource in ["networks", "routers", "ports"]:
+        for resource in ["networks", "routers", "ports", "security_groups"]:
             self.cache["neutron"][resource] = LevelCache(
                 os.path.join(neutron_path, resource))
 
-        glance_path = os.path.join(self.path, "glance")
-        if not os.path.exists(glance_path):
-            os.mkdir(glance_path)
-        self.cache["glance"]["images"] = LevelCache(
-            os.path.join(glance_path, "images"))
+        # ------------------------------------------------------------------- #
 
         nova_path = os.path.join(self.path, "nova")
         if not os.path.exists(nova_path):
             os.mkdir(nova_path)
 
-        for el in ["flavors", "security_groups", "servers"]:
+        for el in ["flavors", "servers"]:
             self.cache["nova"][el] = LevelCache(os.path.join(nova_path, el))
+
+        # ------------------------------------------------------------------- #
+
+        swift_path = os.path.join(self.path, "swift")
+        if not os.path.exists(swift_path):
+            os.mkdir(swift_path)
+
+        for el in ["containers", "objects"]:
+            self.cache["swift"][el] = LevelCache(os.path.join(swift_path, el))

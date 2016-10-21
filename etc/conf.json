@@ -105,6 +105,19 @@
         "attach": [10, 1, 1],
         "delete": [10, 1, 1]
       }
+    },
+    "swift":
+    {
+      "containers":
+      {
+        "create": [10, 4, 1],
+        "delete": [10, 1, 1]
+      },
+      "objects":
+      {
+        "create": [10, 4, 1],
+        "delete": [10, 1, 1]
+      }
     }
   }
 }

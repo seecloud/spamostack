@@ -87,7 +87,18 @@ class Keeper(object):
 
         @param func: A method which would be used to examine a parameter
         @type func: `method`
+
+        @param list_args: Parameter which would be passed to `list` methods.
+        Dirty hack:
+        That parameter defines in **kwargs but then it will be deleted from it.
+        @type list_args: `list`
         """
+
+        if kwargs and "list_args" in kwargs:
+            list_args = kwargs["list_args"]
+            del kwargs["list_args"]
+        else:
+            list_args = []
 
         client = getattr(self.client_factory, client_name)()
         resource = getattr(client, resource_name)
@@ -98,7 +109,7 @@ class Keeper(object):
         if func is not None and param is not None:
             result = []
             try:
-                for el in list(resource.list()):
+                for el in list(resource.list(*list_args)):
                     if not args and not kwargs:
                         probe = getattr(el, param)
                     else:
@@ -121,7 +132,7 @@ class Keeper(object):
         elif func is not None and param is None:
             result = []
             try:
-                for el in list(resource.list()):
+                for el in list(resource.list(*list_args)):
                     params = []
                     for arg in args:
                         params.append(getattr(el, arg))
@@ -132,7 +143,7 @@ class Keeper(object):
                 log.critical("Exception: ".format(exc))
                 pass
         elif func is None and param is None:
-            possibilities = list(resource.list())
+            possibilities = list(resource.list(*list_args))
             if len(possibilities) > 0:
                 result = random.choice(possibilities)
 
@@ -166,6 +177,7 @@ class Keeper(object):
 
         for client_name in components:
             log.debug("Start cleaning for {} client".format(client_name))
+
             client = getattr(self.client_factory, client_name)()
 
             if client_name in binded_resources:

@@ -24,6 +24,8 @@ For installation just type it in the project folder ``pip install -e .``
 +-----------+------+
 | Cinder    | Done |
 +-----------+------+
+| Swift     | Done |
++-----------+------+
 
 Configuring spamostack
 ----------------------
@@ -75,6 +77,7 @@ Alternatively you could pass some arguments in the ``argparse`` form:
 ``spamostack --conf path/to/pipeline/file --db path/to/database``
 
 And for cleaning that mess use ``spamostack --clean component_name`` for ex: ``spamostack --clean keystone``.
+Or just ``spamostack --clean all``
 
 Available resources
 -------------------
@@ -91,4 +94,6 @@ Available resources
 | Neutron   | networks, subnets, routers, ports, security_groups |
 +-----------+----------------------------------------------------+
 | Cinder    | volumes                                            |
++-----------+----------------------------------------------------+
+| Swift     | containers, objects                                |
 +-----------+----------------------------------------------------+
