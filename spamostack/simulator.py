@@ -20,7 +20,7 @@ import time
 
 import spam_factory
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 def threader(func):
