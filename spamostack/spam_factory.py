@@ -104,7 +104,6 @@ def uncache(func):
         elif "volume" in func.__name__:
             section = "volumes"
 
-
         class_name = self.__class__.__name__.lower().replace("spam", "")
         del self.cache[class_name][section][processed]
 
