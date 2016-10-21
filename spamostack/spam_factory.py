@@ -17,10 +17,11 @@ import logging
 import random
 
 import client_factory
+from Crypto.PublicKey import RSA
 import faker
 import netaddr
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 def cache(func):
@@ -32,30 +33,32 @@ def cache(func):
 
         if "container" in func.__name__:
             section = "containers"
-        elif "object" in func.__name__:
-            section = "objects"
-        elif "user" in func.__name__:
-            section = "users"
-        elif "project" in func.__name__:
-            section = "projects"
-        elif "volume" in func.__name__:
-            section = "volumes"
-        elif "network" in func.__name__:
-            section = "networks"
-        elif "router" in func.__name__:
-            section = "routers"
-        elif "port" in func.__name__:
-            section = "ports"
-        elif "security_groups" in func.__name__:
-            section = "security_groups"
-        elif "subnet" in func.__name__:
-            section = "subnets"
         elif "flavor" in func.__name__:
             section = "flavors"
-        elif "server" in func.__name__:
-            section = "servers"
         elif "image" in func.__name__:
             section = "images"
+        elif "keypair" in func.__name__:
+            section = "keypairs"
+        elif "network" in func.__name__:
+            section = "networks"
+        elif "object" in func.__name__:
+            section = "objects"
+        elif "port" in func.__name__:
+            section = "ports"
+        elif "project" in func.__name__:
+            section = "projects"
+        elif "router" in func.__name__:
+            section = "routers"
+        elif "security_groups" in func.__name__:
+            section = "security_groups"
+        elif "server" in func.__name__:
+            section = "servers"
+        elif "subnet" in func.__name__:
+            section = "subnets"
+        elif "user" in func.__name__:
+            section = "users"
+        elif "volume" in func.__name__:
+            section = "volumes"
 
         class_name = self.__class__.__name__.lower().replace("spam", "")
         self.cache[class_name][section].setdefault(processed.id, False)
@@ -74,30 +77,32 @@ def uncache(func):
 
         if "container" in func.__name__:
             section = "containers"
-        elif "object" in func.__name__:
-            section = "objects"
-        elif "user" in func.__name__:
-            section = "users"
-        elif "project" in func.__name__:
-            section = "projects"
-        elif "volume" in func.__name__:
-            section = "volumes"
-        elif "network" in func.__name__:
-            section = "networks"
-        elif "router" in func.__name__:
-            section = "routers"
-        elif "port" in func.__name__:
-            section = "ports"
-        elif "security_groups" in func.__name__:
-            section = "security_groups"
-        elif "subnet" in func.__name__:
-            section = "subnets"
         elif "flavor" in func.__name__:
             section = "flavors"
-        elif "server" in func.__name__:
-            section = "servers"
         elif "image" in func.__name__:
             section = "images"
+        elif "keypair" in func.__name__:
+            section = "keypairs"
+        elif "network" in func.__name__:
+            section = "networks"
+        elif "object" in func.__name__:
+            section = "objects"
+        elif "port" in func.__name__:
+            section = "ports"
+        elif "project" in func.__name__:
+            section = "projects"
+        elif "router" in func.__name__:
+            section = "routers"
+        elif "security_groups" in func.__name__:
+            section = "security_groups"
+        elif "server" in func.__name__:
+            section = "servers"
+        elif "subnet" in func.__name__:
+            section = "subnets"
+        elif "user" in func.__name__:
+            section = "users"
+        elif "volume" in func.__name__:
+            section = "volumes"
 
         class_name = self.__class__.__name__.lower().replace("spam", "")
         del self.cache[class_name][section][processed]
@@ -169,6 +174,16 @@ class SpamFactory(client_factory.ClientFactory, object):
         self.keeper = keeper
         self.faker = faker.Factory.create('en_US')
 
+    def spam_cinder(self):
+        """Create spam cinder client."""
+
+        return SpamCinder(self.cache, self.cinder(), self.faker, self.keeper)
+
+    def spam_glance(self):
+        """Create spam glance client."""
+
+        return SpamGlance(self.cache, self.glance(), self.faker, self.keeper)
+
     def spam_keystone(self):
         """Create spam keystone client."""
 
@@ -180,25 +195,300 @@ class SpamFactory(client_factory.ClientFactory, object):
 
         return SpamNeutron(self.cache, self.neutron(), self.faker, self.keeper)
 
-    def spam_cinder(self):
-        """Create spam cinder client."""
-
-        return SpamCinder(self.cache, self.cinder(), self.faker, self.keeper)
-
     def spam_nova(self):
         """Create spam nova client."""
 
         return SpamNova(self.cache, self.nova(), self.faker, self.keeper)
 
-    def spam_glance(self):
-        """Create spam glance client."""
-
-        return SpamGlance(self.cache, self.glance(), self.faker, self.keeper)
-
     def spam_swift(self):
         """Create spam swift client."""
 
         return SpamSwift(self.cache, self.swift(), self.faker, self.keeper)
+
+
+class SpamCinder(object):
+    def __init__(self, cache, client, faker=None, keeper=None):
+        """Create `SpamCinder` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
+        self.native = client
+
+        self.cache = cache
+        self.faker = faker
+        self.keeper = keeper
+
+        self.spam = lambda: None
+
+        self.spam.volumes = lambda: None
+
+        self.spam.volumes.attach = self.volume_attach
+        self.spam.volumes.create = self.volume_create
+        self.spam.volumes.detach = self.volume_detach
+        self.spam.volumes.delete = self.volume_delete
+        self.spam.volumes.extend = self.volume_extend
+        self.spam.volumes.update = self.volume_update
+
+    def volume_attach(self):
+        volumes = self.keeper.get("cinder", "volumes", None,
+                                  (lambda x, y: x == [] and
+                                   y in self.cache["cinder"]["volumes"]),
+                                  "attachments", "id")
+
+        if len(volumes) > 0:
+            volume = random.choice(volumes)
+        else:
+            log.warning("There is no volumes for attaching, skipping...")
+            return
+
+        instance = self.keeper.get("nova", "servers")
+
+        if instance is None:
+            log.warning("There is no instances for volume "
+                        "attaching, skipping...")
+            return
+
+        try:
+            log.info("Attaching volume {volume_id} to instance {instance_id}".
+                     format(volume_id=volume.id, instance_id=instance.id))
+            attached = self.native.volumes.attach(
+                volume, instance.id, volume.name)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return attached
+
+    @cache
+    def volume_create(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("cinder", "volumes", "name",
+                                   lambda x: x == name):
+                break
+
+        volume_sizes = [1, 2, 5, 10, 20, 40, 50, 100, 200, 500]
+
+        try:
+            log.info("Creating new volume with name {}".format(name))
+            created = self.native.volumes.create(
+                name=name, size=random.choice(volume_sizes),
+                description="Volume with name {}".format(name))
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        self.native.volumes.reset_state(created, "available", "detached")
+
+        return created
+
+    def volume_detach(self):
+        volumes = self.keeper.get("cinder", "volumes", None,
+                                  (lambda x, y: x != [] and
+                                   y in self.cache["cinder"]["volumes"]),
+                                  "attachments", "id")
+
+        if len(volumes) > 0:
+            volume = random.choice(volumes)
+        else:
+            log.warning("There is no volumes for detaching, skipping...")
+            return
+
+        try:
+            log.info("Detaching volume {}".format(volume.id))
+            detached = self.native.volumes.detach(volume)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return detached
+
+    @uncache
+    def volume_delete(self):
+        volumes = self.keeper.get(
+            "cinder", "volumes", "id",
+            lambda x: x in self.cache["cinder"]["volumes"])
+
+        if len(volumes) > 0:
+            volume = random.choice(volumes)
+        else:
+            log.warning("There is no volumes for removing, skipping...")
+            return
+
+        if len(volume.attachments) > 0:
+            self.native.volumes.detach(volume)
+
+        try:
+            log.info("Remove volume {}".format(volume.id))
+            self.native.volumes.delete(volume)
+        except Exception:
+            return
+
+        return volume.id
+
+    def volume_extend(self):
+        volumes = self.keeper.get(
+            "cinder", "volumes", "id",
+            lambda x: x in self.cache["cinder"]["volumes"])
+
+        if len(volumes) > 0:
+            volume = random.choice(volumes)
+        else:
+            log.warning("There is no volume for extending, skipping...")
+            return
+
+        add_size = random.randint(1, 100)
+
+        try:
+            log.info("Extends volume with id {}".format(volume.id))
+            extended = self.native.volumes.extend(
+                volume=volume, new_size=volume.size + add_size)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return extended
+
+    def volume_update(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("cinder", "volumes", "name",
+                                   lambda x: x == name):
+                break
+
+        volumes = self.keeper.get(
+            "cinder", "volumes", "id",
+            lambda x: x in self.cache["cinder"]["volumes"])
+
+        if len(volumes) > 0:
+            volume = random.choice(volumes)
+        else:
+            log.warning("There is no volume for updating, skipping...")
+            return
+
+        try:
+            log.info("Updating volume with id {}".format(volume.id))
+            updated = self.native.volumes.update(
+                volume=volume, name=name,
+                description="Volume with name {}".format(name))
+        except Exception as exc:
+            log.critical("Exception: ".format(exc))
+            return
+
+        return updated
+
+
+class SpamGlance(object):
+    def __init__(self, cache, client, faker=None, keeper=None):
+        """Create `SpamGlance` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
+        self.native = client
+
+        self.cache = cache
+        self.faker = faker
+        self.keeper = keeper
+
+        self.spam = lambda: None
+
+        self.spam.images = lambda: None
+
+        self.spam.images.create = self.image_create
+        self.spam.images.delete = self.image_delete
+        self.spam.images.update = self.image_update
+
+    @cache
+    def image_create(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("glance", "images", "name",
+                                   lambda x: x == name):
+                break
+
+        try:
+            log.info("Creating image with name {}".format(name))
+            created = self.native.images.create(
+                name=name, data=name, disk_format='raw',
+                container_format='bare', visibility='public')
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        self.native.images.upload(created.id, '')
+
+        return created
+
+    @uncache
+    def image_delete(self):
+        images = self.keeper.get("glance", "images", None,
+                                 (lambda x, y: not x.startswith("cirros") and
+                                  y in self.cache["glance"]["images"]))
+
+        if len(images) > 0:
+            image = random.choice(images)
+        else:
+            log.warning("There is no images for removing, skipping...")
+            return
+
+        try:
+            log.info("Removing image {}".format(image.id))
+            self.native.images.delete(image.id)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return image.id
+
+    def image_update(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("glance", "images", "name",
+                                   lambda x: x == name):
+                break
+
+        images = self.keeper.get("glance", "images", None,
+                                 (lambda x, y: not x.startswith("cirros") and
+                                  y in self.cache["glance"]["images"]),
+                                 "name", "id")
+
+        if len(images) > 0:
+            image = random.choice(images)
+        else:
+            log.warning("There is no images for updating, skipping")
+            return
+
+        # TO-DO: Make a normal warning logging
+        try:
+            log.info("Updating image {}".format(image.id))
+            updated = self.native.images.update(image.id, name=name)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return updated
 
 
 class SpamKeystone(object):
@@ -219,22 +509,120 @@ class SpamKeystone(object):
         """
 
         self.native = client
+
         self.cache = cache
         self.faker = faker
         self.keeper = keeper
 
         self.spam = lambda: None
 
-        self.spam.users = lambda: None
         self.spam.projects = lambda: None
-
-        self.spam.users.create = self.spam_user_create
-        self.spam.users.update = self.spam_user_update
-        self.spam.users.delete = self.spam_user_delete
+        self.spam.users = lambda: None
 
         self.spam.projects.create = self.spam_project_create
-        self.spam.projects.update = self.spam_project_update
         self.spam.projects.delete = self.spam_project_delete
+        self.spam.projects.update = self.spam_project_update
+
+        self.spam.users.create = self.spam_user_create
+        self.spam.users.delete = self.spam_user_delete
+        self.spam.users.update = self.spam_user_update
+
+    @cache
+    def spam_project_create(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("keystone", "projects", "name",
+                                   lambda x: x == name):
+                break
+
+        try:
+            log.info("Creating project with name {}".format(name))
+            created = self.native.projects.create(
+                name=name, domain="default",
+                description="Project {}".format(name), enabled=True)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        # quotas update
+        try:
+            log.info("Update cinder quotas for project "
+                     "{}".format(created.name))
+            self.keeper.client_factory.cinder().quotas.update(
+                created.id, backup_gigabytes=-1, backups=-1, gigabytes=-1,
+                per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
+            log.info(
+                "Update neutron quotas for project {}".format(created.name))
+            self.keeper.client_factory.neutron().quotas.update(
+                created.id, subnet=-1, network=-1, floatingip=-1,
+                subnetpool=-1, port=-1, security_group_rule=-1,
+                security_group=-1, router=-1, rbac_policy=-1)
+            log.info("Update nova quotas for project {}".format(created.name))
+            self.keeper.client_factory.nova().quotas.update(
+                created.id, cores=-1, fixed_ips=-1, floating_ips=-1,
+                injected_file_content_bytes=-1, injected_file_path_bytes=-1,
+                injected_files=-1, instances=-1, key_pairs=-1,
+                metadata_items=-1, ram=-1, security_group_rules=-1,
+                security_groups=-1, server_group_members=-1, server_groups=-1)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return created
+
+    @uncache
+    def spam_project_delete(self):
+        projects = self.keeper.get("keystone", "projects", None,
+                                   (lambda x, y: x != "admin" and
+                                    y in self.cache["keystone"]["projects"]),
+                                   "name", "id")
+
+        # TO-DO: Make a normal warning logging
+        if len(projects) > 0:
+            project = random.choice(projects)
+        else:
+            log.warning("There is no projects for removing, skipping...")
+            return
+
+        # TO-DO: Make a normal warning logging
+        try:
+            log.info("Removing project {}".format(project.name))
+            self.native.projects.delete(project)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return project.id
+
+    def spam_project_update(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("keystone", "projects", "name",
+                                   lambda x: x == name):
+                break
+
+        projects = self.keeper.get("keystone", "projects", None,
+                                   (lambda x, y: x != "admin" and
+                                    y in self.cache["keystone"]["projects"]),
+                                   "name", "id")
+
+        # TO-DO: Make a normal warning logging
+        if len(projects) > 0:
+            project = random.choice(projects)
+        else:
+            log.warning("There is no project for updating, skipping...")
+            return
+
+        try:
+            log.info("Trying to update project {}".format(project.name))
+            updated = self.native.projects.update(
+                project=project, name=name, domain="default",
+                description="Project {}".format(name), enabled=True)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return updated
 
     @cache
     def spam_user_create(self):
@@ -287,6 +675,28 @@ class SpamKeystone(object):
 
         return created
 
+    @uncache
+    def spam_user_delete(self):
+        users = self.keeper.get("keystone", "users", None,
+                                (lambda x, y: x != "admin" and
+                                 y in self.cache["keystone"]["users"]),
+                                "name", "id")
+
+        if len(users) > 0:
+            user = random.choice(users)
+        else:
+            log.warning("There is no users, skipping user removing...")
+            return
+
+        try:
+            log.info("Trying to delete user {}".format(user.name))
+            self.native.users.delete(user)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return user.id
+
     def spam_user_update(self):
         while True:
             name = self.faker.name()
@@ -333,125 +743,6 @@ class SpamKeystone(object):
 
         return updated
 
-    @uncache
-    def spam_user_delete(self):
-        users = self.keeper.get("keystone", "users", None,
-                                (lambda x, y: x != "admin" and
-                                 y in self.cache["keystone"]["users"]),
-                                "name", "id")
-
-        if len(users) > 0:
-            user = random.choice(users)
-        else:
-            log.warning("There is no users, skipping user removing...")
-            return
-
-        try:
-            log.info("Trying to delete user {}".format(user.name))
-            self.native.users.delete(user)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return user.id
-
-    @cache
-    def spam_project_create(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("keystone", "projects", "name",
-                                   lambda x: x == name):
-                break
-
-        try:
-            log.info("Creating project with name {}".format(name))
-            created = self.native.projects.create(
-                name=name, domain="default",
-                description="Project {}".format(name), enabled=True)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        # quotas update
-        try:
-            log.info("Update cinder quotas for project "
-                     "{}".format(created.name))
-            self.keeper.client_factory.cinder().quotas.update(
-                created.id, backup_gigabytes=-1, backups=-1, gigabytes=-1,
-                per_volume_gigabytes=-1, snapshots=-1, volumes=-1)
-            log.info(
-                "Update neutron quotas for project {}".format(created.name))
-            self.keeper.client_factory.neutron().quotas.update(
-                created.id, subnet=-1, network=-1, floatingip=-1,
-                subnetpool=-1, port=-1, security_group_rule=-1,
-                security_group=-1, router=-1, rbac_policy=-1)
-            log.info("Update nova quotas for project {}".format(created.name))
-            self.keeper.client_factory.nova().quotas.update(
-                created.id, cores=-1, fixed_ips=-1, floating_ips=-1,
-                injected_file_content_bytes=-1, injected_file_path_bytes=-1,
-                injected_files=-1, instances=-1, key_pairs=-1,
-                metadata_items=-1, ram=-1, security_group_rules=-1,
-                security_groups=-1, server_group_members=-1, server_groups=-1)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return created
-
-    def spam_project_update(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("keystone", "projects", "name",
-                                   lambda x: x == name):
-                break
-
-        projects = self.keeper.get("keystone", "projects", None,
-                                   (lambda x, y: x != "admin" and
-                                    y in self.cache["keystone"]["projects"]),
-                                   "name", "id")
-
-        # TO-DO: Make a normal warning logging
-        if len(projects) > 0:
-            project = random.choice(projects)
-        else:
-            log.warning("There is no project for updating, skipping...")
-            return
-
-        try:
-            log.info("Trying to update project {}".format(project.name))
-            updated = self.native.projects.update(
-                project=project, name=name, domain="default",
-                description="Project {}".format(name), enabled=True)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return updated
-
-    @uncache
-    def spam_project_delete(self):
-        projects = self.keeper.get("keystone", "projects", None,
-                                   (lambda x, y: x != "admin" and
-                                    y in self.cache["keystone"]["projects"]),
-                                   "name", "id")
-
-        # TO-DO: Make a normal warning logging
-        if len(projects) > 0:
-            project = random.choice(projects)
-        else:
-            log.warning("There is no projects for removing, skipping...")
-            return
-
-        # TO-DO: Make a normal warning logging
-        try:
-            log.info("Removing project {}".format(project.name))
-            self.native.projects.delete(project)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return project.id
-
 
 class SpamNeutron(object):
     def __init__(self, cache, client, faker=None, keeper=None):
@@ -479,30 +770,30 @@ class SpamNeutron(object):
         self.spam = lambda: None
 
         self.spam.networks = lambda: None
-        self.spam.routers = lambda: None
         self.spam.ports = lambda: None
+        self.spam.routers = lambda: None
         self.spam.security_groups = lambda: None
         self.spam.subnets = lambda: None
 
         self.spam.networks.create = self.spam_network_create
-        self.spam.networks.update = self.spam_network_update
         self.spam.networks.delete = self.spam_network_delete
-
-        self.spam.routers.create = self.spam_router_create
-        self.spam.routers.update = self.spam_router_update
-        self.spam.routers.delete = self.spam_router_delete
+        self.spam.networks.update = self.spam_network_update
 
         self.spam.ports.create = self.spam_port_create
-        self.spam.ports.update = self.spam_port_update
         self.spam.ports.delete = self.spam_port_delete
+        self.spam.ports.update = self.spam_port_update
+
+        self.spam.routers.create = self.spam_router_create
+        self.spam.routers.delete = self.spam_router_delete
+        self.spam.routers.update = self.spam_router_update
 
         self.spam.security_groups.create = self.spam_security_group_create
-        self.spam.security_groups.update = self.spam_security_group_update
         self.spam.security_groups.delete = self.spam_security_group_delete
+        self.spam.security_groups.update = self.spam_security_group_update
 
         self.spam.subnets.create = self.spam_subnet_create
-        self.spam.subnets.update = self.spam_subnet_update
         self.spam.subnets.delete = self.spam_subnet_delete
+        self.spam.subnets.update = self.spam_subnet_update
 
     @cache
     def spam_network_create(self):
@@ -522,6 +813,27 @@ class SpamNeutron(object):
             return
 
         return created
+
+    @uncache
+    def spam_network_delete(self):
+        networks = self.keeper.get(
+            "neutron", "networks", "id",
+            lambda x: x in self.cache["neutron"]["networks"])
+
+        if len(networks) > 0:
+            network = random.choice(networks)
+        else:
+            log.warning("There is no network for removing, skipping...")
+            return
+
+        try:
+            log.info("Deleting network with id {}".format(network.id))
+            self.native.networks.delete(network.id)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return network.id
 
     def spam_network_update(self):
         while True:
@@ -549,92 +861,6 @@ class SpamNeutron(object):
             return
 
         return updated
-
-    @uncache
-    def spam_network_delete(self):
-        networks = self.keeper.get(
-            "neutron", "networks", "id",
-            lambda x: x in self.cache["neutron"]["networks"])
-
-        if len(networks) > 0:
-            network = random.choice(networks)
-        else:
-            log.warning("There is no network for removing, skipping...")
-            return
-
-        try:
-            log.info("Deleting network with id {}".format(network.id))
-            self.native.networks.delete(network.id)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return network.id
-
-    @cache
-    def spam_router_create(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("neutron", "routers", "name",
-                                   lambda x: x == name):
-                break
-
-        try:
-            log.info("Creating router with name {}".format(name))
-            created = self.native.routers.create(
-                name=name, description="Router with name {}".format(name))
-        except Exception:
-            return
-
-        return created
-
-    def spam_router_update(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("neutron", "routers", "name",
-                                   lambda x: x == name):
-                break
-
-        routers = self.keeper.get(
-            "neutron", "routers", "id",
-            lambda x: x in self.cache["neutron"]["routers"])
-
-        if len(routers) > 0:
-            router = random.choice(routers)
-        else:
-            log.warning("There is no routers for updating, skipping...")
-            return
-
-        try:
-            log.info("Updating router with id {}".format(router.id))
-            updated = self.native.routers.update(
-                router.id, name=name,
-                description="Router with name {}".format(name))
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return updated
-
-    @uncache
-    def spam_router_delete(self):
-        routers = self.keeper.get(
-            "neutron", "routers", "id",
-            lambda x: x in self.cache["neutron"]["routers"])
-
-        if len(routers) > 0:
-            router = random.choice(routers)
-        else:
-            log.warning("There is no routers for removing, skipping...")
-            return
-
-        try:
-            log.info("Removing router with id {}".format(router.id))
-            self.native.routers.delete(router.id)
-        except Exception:
-            return
-
-        return router.id
 
     @cache
     def spam_port_create(self):
@@ -665,6 +891,27 @@ class SpamNeutron(object):
 
         return created
 
+    @uncache
+    def spam_port_delete(self):
+        ports = self.keeper.get(
+            "neutron", "ports", "id",
+            lambda x: x in self.cache["neutron"]["ports"])
+
+        if len(ports) > 0:
+            port = random.choice(ports)
+        else:
+            log.warning("There is no ports for removing, skipping...")
+            return
+
+        try:
+            log.info("Removing port with id {}".format(port.id))
+            self.native.ports.delete(port.id)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return port.id
+
     def spam_port_update(self):
         while True:
             name = self.faker.word()
@@ -693,26 +940,70 @@ class SpamNeutron(object):
 
         return updated
 
-    @uncache
-    def spam_port_delete(self):
-        ports = self.keeper.get(
-            "neutron", "ports", "id",
-            lambda x: x in self.cache["neutron"]["ports"])
+    @cache
+    def spam_router_create(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("neutron", "routers", "name",
+                                   lambda x: x == name):
+                break
 
-        if len(ports) > 0:
-            port = random.choice(ports)
+        try:
+            log.info("Creating router with name {}".format(name))
+            created = self.native.routers.create(
+                name=name, description="Router with name {}".format(name))
+        except Exception:
+            return
+
+        return created
+
+    @uncache
+    def spam_router_delete(self):
+        routers = self.keeper.get(
+            "neutron", "routers", "id",
+            lambda x: x in self.cache["neutron"]["routers"])
+
+        if len(routers) > 0:
+            router = random.choice(routers)
         else:
-            log.warning("There is no ports for removing, skipping...")
+            log.warning("There is no routers for removing, skipping...")
             return
 
         try:
-            log.info("Removing port with id {}".format(port.id))
-            self.native.ports.delete(port.id)
+            log.info("Removing router with id {}".format(router.id))
+            self.native.routers.delete(router.id)
+        except Exception:
+            return
+
+        return router.id
+
+    def spam_router_update(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("neutron", "routers", "name",
+                                   lambda x: x == name):
+                break
+
+        routers = self.keeper.get(
+            "neutron", "routers", "id",
+            lambda x: x in self.cache["neutron"]["routers"])
+
+        if len(routers) > 0:
+            router = random.choice(routers)
+        else:
+            log.warning("There is no routers for updating, skipping...")
+            return
+
+        try:
+            log.info("Updating router with id {}".format(router.id))
+            updated = self.native.routers.update(
+                router.id, name=name,
+                description="Router with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
             return
 
-        return port.id
+        return updated
 
     @cache
     def spam_security_group_create(self):
@@ -732,6 +1023,29 @@ class SpamNeutron(object):
             return
 
         return created
+
+    @uncache
+    def spam_security_group_delete(self):
+        security_groups = self.keeper.get(
+            "neutron", "security_groups", "id",
+            lambda x: x in self.cache["neutron"]["security_groups"])
+
+        if len(security_groups) > 0:
+            security_group = random.choice(security_groups)
+        else:
+            log.warning("There is no security groups for removing, "
+                        "skipping...")
+            return
+
+        try:
+            log.info(
+                "Remove security group with id {}".format(security_group.id))
+            self.native.security_groups.delete(security_group.id)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return security_group.id
 
     def spam_security_group_update(self):
         while True:
@@ -761,29 +1075,6 @@ class SpamNeutron(object):
             return
 
         return updated
-
-    @uncache
-    def spam_security_group_delete(self):
-        security_groups = self.keeper.get(
-            "neutron", "security_groups", "id",
-            lambda x: x in self.cache["neutron"]["security_groups"])
-
-        if len(security_groups) > 0:
-            security_group = random.choice(security_groups)
-        else:
-            log.warning("There is no security groups for removing, "
-                        "skipping...")
-            return
-
-        try:
-            log.info(
-                "Remove security group with id {}".format(security_group.id))
-            self.native.security_groups.delete(security_group.id)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return security_group.id
 
     @cache
     def spam_subnet_create(self):
@@ -819,6 +1110,27 @@ class SpamNeutron(object):
 
         return created
 
+    @uncache
+    def spam_subnet_delete(self):
+        subnets = self.keeper.get(
+            "neutron", "subnets", "id",
+            lambda x: x in self.cache["neutron"]["subnets"])
+
+        if len(subnets) > 0:
+            subnet = random.choice(subnets)
+        else:
+            log.warning("There is no subnets for removing, skipping...")
+            return
+
+        try:
+            log.info("Remove subnet with id {}".format(subnet.id))
+            self.native.subnets.update(subnet.id)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return subnet.id
+
     def spam_subnet_update(self):
         while True:
             name = self.faker.word()
@@ -847,210 +1159,6 @@ class SpamNeutron(object):
 
         return updated
 
-    @uncache
-    def spam_subnet_delete(self):
-        subnets = self.keeper.get(
-            "neutron", "subnets", "id",
-            lambda x: x in self.cache["neutron"]["subnets"])
-
-        if len(subnets) > 0:
-            subnet = random.choice(subnets)
-        else:
-            log.warning("There is no subnets for removing, skipping...")
-            return
-
-        try:
-            log.info("Remove subnet with id {}".format(subnet.id))
-            self.native.subnets.update(subnet.id)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return subnet.id
-
-
-class SpamCinder(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `SpamCinder` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.native = client
-
-        self.cache = cache
-        self.faker = faker
-        self.keeper = keeper
-
-        self.spam = lambda: None
-
-        self.spam.volumes = lambda: None
-
-        self.spam.volumes.create = self.volume_create
-        self.spam.volumes.update = self.volume_update
-        self.spam.volumes.extend = self.volume_extend
-        self.spam.volumes.attach = self.volume_attach
-        self.spam.volumes.detach = self.volume_detach
-        self.spam.volumes.delete = self.volume_delete
-
-    @cache
-    def volume_create(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("cinder", "volumes", "name",
-                                   lambda x: x == name):
-                break
-
-        volume_sizes = [1, 2, 5, 10, 20, 40, 50, 100, 200, 500]
-
-        try:
-            log.info("Creating new volume with name {}".format(name))
-            created = self.native.volumes.create(
-                name=name, size=random.choice(volume_sizes),
-                description="Volume with name {}".format(name))
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        self.native.volumes.reset_state(created, "available", "detached")
-
-        return created
-
-    def volume_update(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("cinder", "volumes", "name",
-                                   lambda x: x == name):
-                break
-
-        volumes = self.keeper.get(
-            "cinder", "volumes", "id",
-            lambda x: x in self.cache["cinder"]["volumes"])
-
-        if len(volumes) > 0:
-            volume = random.choice(volumes)
-        else:
-            log.warning("There is no volume for updating, skipping...")
-            return
-
-        try:
-            log.info("Updating volume with id {}".format(volume.id))
-            updated = self.native.volumes.update(
-                volume=volume, name=name,
-                description="Volume with name {}".format(name))
-        except Exception as exc:
-            log.critical("Exception: ".format(exc))
-            return
-
-        return updated
-
-    def volume_extend(self):
-        volumes = self.keeper.get(
-            "cinder", "volumes", "id",
-            lambda x: x in self.cache["cinder"]["volumes"])
-
-        if len(volumes) > 0:
-            volume = random.choice(volumes)
-        else:
-            log.warning("There is no volume for extending, skipping...")
-            return
-
-        add_size = random.randint(1, 100)
-
-        try:
-            log.info("Extends volume with id {}".format(volume.id))
-            extended = self.native.volumes.extend(
-                volume=volume, new_size=volume.size + add_size)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return extended
-
-    def volume_attach(self):
-        volumes = self.keeper.get("cinder", "volumes", None,
-                                  (lambda x, y: x == [] and
-                                   y in self.cache["cinder"]["volumes"]),
-                                  "attachments", "id")
-
-        if len(volumes) > 0:
-            volume = random.choice(volumes)
-        else:
-            log.warning("There is no volumes for attaching, skipping...")
-            return
-
-        instance = self.keeper.get("nova", "servers")
-
-        if instance is None:
-            log.warning("There is no instances for volume "
-                        "attaching, skipping...")
-            return
-
-        try:
-            log.info("Attaching volume {volume_id} to instance {instance_id}".
-                     format(volume_id=volume.id, instance_id=instance.id))
-            attached = self.native.volumes.attach(
-                volume, instance.id, volume.name)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return attached
-
-    def volume_detach(self):
-        volumes = self.keeper.get("cinder", "volumes", None,
-                                  (lambda x, y: x != [] and
-                                   y in self.cache["cinder"]["volumes"]),
-                                  "attachments", "id")
-
-        if len(volumes) > 0:
-            volume = random.choice(volumes)
-        else:
-            log.warning("There is no volumes for detaching, skipping...")
-            return
-
-        try:
-            log.info("Detaching volume {}".format(volume.id))
-            detached = self.native.volumes.detach(volume)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return detached
-
-    @uncache
-    def volume_delete(self):
-        volumes = self.keeper.get(
-            "cinder", "volumes", "id",
-            lambda x: x in self.cache["cinder"]["volumes"])
-
-        if len(volumes) > 0:
-            volume = random.choice(volumes)
-        else:
-            log.warning("There is no volumes for removing, skipping...")
-            return
-
-        if len(volume.attachments) > 0:
-            self.native.volumes.detach(volume)
-
-        try:
-            log.info("Remove volume {}".format(volume.id))
-            self.native.volumes.delete(volume)
-        except Exception:
-            return
-
-        return volume.id
-
 
 class SpamNova(object):
     def __init__(self, cache, client, faker=None, keeper=None):
@@ -1076,16 +1184,19 @@ class SpamNova(object):
         self.keeper = keeper
 
         self.spam = lambda: None
-
         self.spam.flavors = lambda: None
+        self.spam.keypairs = lambda: None
+        self.spam.servers = lambda: None
+
         self.spam.flavors.create = self.flavor_create
-        self.spam.flavors.update = self.flavor_update
         self.spam.flavors.delete = self.flavor_delete
 
-        self.spam.servers = lambda: None
+        self.spam.keypairs.create = self.keypair_create
+        self.spam.keypairs.delete = self.keypair_delete
+
         self.spam.servers.create = self.server_create
-        self.spam.servers.update = self.server_update
         self.spam.servers.delete = self.server_delete
+        self.spam.servers.update = self.server_update
 
     @cache
     def flavor_create(self):
@@ -1111,32 +1222,6 @@ class SpamNova(object):
 
         return created
 
-    def flavor_update(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("nova", "flavors", "name",
-                                   lambda x: x == name):
-                break
-
-        flavors = self.keeper.get(
-            "nova", "flavors", "id",
-            lambda x: x in self.cache["nova"]["flavors"])
-
-        if len(flavors) > 0:
-            flavor = random.choice(flavors)
-        else:
-            log.warning("There is no flavors for updating, skipping...")
-            return
-
-        try:
-            log.info("Updating flavor {}".format(flavor.id))
-            updated = self.native.flavors.update(flavor=flavor, name=name)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return updated
-
     @uncache
     def flavor_delete(self):
         flavors = self.keeper.get(
@@ -1157,6 +1242,43 @@ class SpamNova(object):
             return
 
         return flavor.id
+
+    @cache
+    def keypair_create(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("nova", "keypairs", "name",
+                                   lambda x: x == name):
+                break
+
+        key = RSA.generate(2048).publickey().exportKey('OpenSSH')
+        try:
+            log.info("Creating keypair with name {}".format(name))
+            created = self.native.keypairs.create(name=name, public_key=key)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return created
+
+    @uncache
+    def keypair_delete(self):
+        keypairs = self.keeper.get(
+            "nova", "keypairs", "id",
+            lambda x: x in self.cache["nova"]["keypairs"])
+        if len(keypairs) > 0:
+            keypair = random.choice(keypairs)
+        else:
+            log.warning("There is no keypairs for removing, skipping...")
+
+        try:
+            log.info("Removing keypair {}".format(keypair.id))
+            self.native.keypairs.delete(keypair)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return keypair.id
 
     @cache
     def server_create(self):
@@ -1204,6 +1326,27 @@ class SpamNova(object):
 
         return created
 
+    @uncache
+    def server_delete(self):
+        servers = self.keeper.get(
+            "nova", "servers", "id",
+            lambda x: x in self.cache["nova"]["servers"])
+
+        if len(servers) > 0:
+            server = random.choice(servers)
+        else:
+            log.warning("There is no servers for removing, skipping...")
+            return
+
+        try:
+            log.info("Removing server {}".format(server.id))
+            self.native.servers.delete(server)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return server.id
+
     def server_update(self):
         while True:
             name = self.faker.word()
@@ -1229,128 +1372,6 @@ class SpamNova(object):
             return
 
         return updated
-
-    @uncache
-    def server_delete(self):
-        servers = self.keeper.get(
-            "nova", "servers", "id",
-            lambda x: x in self.cache["nova"]["servers"])
-
-        if len(servers) > 0:
-            server = random.choice(servers)
-        else:
-            log.warning("There is no servers for removing, skipping...")
-            return
-
-        try:
-            log.info("Removing server {}".format(server.id))
-            self.native.servers.delete(server)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return server.id
-
-
-class SpamGlance(object):
-    def __init__(self, cache, client, faker=None, keeper=None):
-        """Create `SpamGlance` class instance.
-
-        @param cache: Cache
-        @type cache: `cache.Cache`
-
-        @param client: An instance of the identity client
-        @type: client: `clientmanager.identity`
-
-        @param faker: An instance of the faker object
-        @type faker: `faker.Factory`
-
-        @param keeper: Reference to the keeper
-        @type keeper: `keeper.Keeper`
-        """
-
-        self.native = client
-
-        self.cache = cache
-        self.faker = faker
-        self.keeper = keeper
-
-        self.spam = lambda: None
-
-        self.spam.images = lambda: None
-        self.spam.images.create = self.image_create
-        self.spam.images.update = self.image_update
-        self.spam.images.delete = self.image_delete
-
-    @cache
-    def image_create(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("glance", "images", "name",
-                                   lambda x: x == name):
-                break
-
-        try:
-            log.info("Creating image with name {}".format(name))
-            created = self.native.images.create(
-                name=name, data=name, disk_format='raw',
-                container_format='bare', visibility='public')
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        self.native.images.upload(created.id, '')
-
-        return created
-
-    def image_update(self):
-        while True:
-            name = self.faker.word()
-            if not self.keeper.get("glance", "images", "name",
-                                   lambda x: x == name):
-                break
-
-        images = self.keeper.get("glance", "images", None,
-                                 (lambda x, y: not x.startswith("cirros") and
-                                  y in self.cache["glance"]["images"]),
-                                 "name", "id")
-
-        if len(images) > 0:
-            image = random.choice(images)
-        else:
-            log.warning("There is no images for updating, skipping")
-            return
-
-        # TO-DO: Make a normal warning logging
-        try:
-            log.info("Updating image {}".format(image.id))
-            updated = self.native.images.update(image.id, name=name)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return updated
-
-    @uncache
-    def image_delete(self):
-        images = self.keeper.get("glance", "images", None,
-                                 (lambda x, y: not x.startswith("cirros") and
-                                  y in self.cache["glance"]["images"]))
-
-        if len(images) > 0:
-            image = random.choice(images)
-        else:
-            log.warning("There is no images for removing, skipping...")
-            return
-
-        try:
-            log.info("Removing image {}".format(image.id))
-            self.native.images.delete(image.id)
-        except Exception as exc:
-            log.critical("Exception: {}".format(exc))
-            return
-
-        return image.id
 
 
 class SpamSwift(object):

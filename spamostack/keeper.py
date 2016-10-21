@@ -17,7 +17,7 @@ import logging
 import random
 
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 class Keeper(object):

@@ -77,7 +77,6 @@
       "flavors":
       {
         "create": [10, 5, 1],
-        "update": [10, 2, 1],
         "delete": [10, 1, 1]
       },
       "servers":
@@ -85,6 +84,11 @@
         "create": [10, 2, 1],
         "update": [10, 1, 1],
         "delete": [10, 1, 1]
+      },
+      "keypairs":
+      {
+        "create": [10, 2, 2],
+        "delete": [10, 5, 1]
       }
     },
     "glance":
