@@ -40,7 +40,7 @@ parser.add_argument('--clean', dest='clean', nargs='+',
                     help='Path to the database directory')
 args = parser.parse_args()
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 if args.verbose:
     log.setLevel(logging.DEBUG)
     level = 'DEBUG'

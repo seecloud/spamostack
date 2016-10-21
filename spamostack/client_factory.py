@@ -133,11 +133,12 @@ def _lst_to_accessible(component=None):
     def lst_to_accessible(func):
         def wrapper(*args, **kwargs):
             result = []
-            for el in func(*args, **kwargs):
-                if component:
-                    result.append(Accessible(el[component]))
-                else:
-                    result.append(Accessible(el))
+            if component:
+                res = func(*args, **kwargs)[component]
+            else:
+                res = func(*args, **kwargs)
+            for el in res:
+                result.append(Accessible(el))
             return result
         return wrapper
     return lst_to_accessible
