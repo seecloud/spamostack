@@ -30,7 +30,11 @@ def cache(func):
             return
         section = ""
 
-        if "user" in func.__name__:
+        if "container" in func.__name__:
+            section = "containers"
+        elif "object" in func.__name__:
+            section = "objects"
+        elif "user" in func.__name__:
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
@@ -68,7 +72,11 @@ def uncache(func):
             return
         section = ""
 
-        if "user" in func.__name__:
+        if "container" in func.__name__:
+            section = "containers"
+        elif "object" in func.__name__:
+            section = "objects"
+        elif "user" in func.__name__:
             section = "users"
         elif "project" in func.__name__:
             section = "projects"
@@ -186,6 +194,11 @@ class SpamFactory(client_factory.ClientFactory, object):
         """Create spam glance client."""
 
         return SpamGlance(self.cache, self.glance(), self.faker, self.keeper)
+
+    def spam_swift(self):
+        """Create spam swift client."""
+
+        return SpamSwift(self.cache, self.swift(), self.faker, self.keeper)
 
 
 class SpamKeystone(object):
@@ -1338,3 +1351,143 @@ class SpamGlance(object):
             return
 
         return image.id
+
+
+class SpamSwift(object):
+    def __init__(self, cache, client, faker=None, keeper=None):
+        """Create `SpamSwift` class instance.
+
+        @param cache: Cache
+        @type cache: `cache.Cache`
+
+        @param client: An instance of the identity client
+        @type: client: `clientmanager.identity`
+
+        @param faker: An instance of the faker object
+        @type faker: `faker.Factory`
+
+        @param keeper: Reference to the keeper
+        @type keeper: `keeper.Keeper`
+        """
+
+        self.native = client
+
+        self.cache = cache
+        self.faker = faker
+        self.keeper = keeper
+
+        self.spam = lambda: None
+
+        self.spam.containers = lambda: None
+        self.spam.containers.create = self.container_create
+        self.spam.containers.delete = self.container_delete
+
+        self.spam.objects = lambda: None
+        self.spam.objects.create = self.object_create
+        self.spam.objects.delete = self.object_delete
+
+    @cache
+    def container_create(self):
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("swift", "containers", "name",
+                                   lambda x: x == name):
+                break
+
+        try:
+            log.info("Creating container with name {}".format(name))
+            created = self.native.containers.create(name)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return created
+
+    @uncache
+    def container_delete(self):
+        containers = self.keeper.get(
+            "swift", "containers", "id",
+            lambda x: x in self.cache["swift"]["containers"])
+
+        if len(containers) > 0:
+            container = random.choice(containers)
+        else:
+            log.warning("There is no containers for removing, skipping...")
+            return
+
+        if container["x-container-object-count"] > 0:
+            for object in self.native.objects.list(container):
+                self.native.objects.delete(container, object)
+
+        try:
+            log.info("Removing container {}".format(container.id))
+            self.native.containers.delete(container)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return container.id
+
+    @cache
+    def object_create(self):
+        containers = self.keeper.get(
+            "swift", "containers", "id",
+            lambda x: x in self.cache["swift"]["containers"])
+
+        if len(containers) > 0:
+            container = random.choice(containers)
+        else:
+            log.warning("There is no containers for creating object, "
+                        "skipping...")
+            return
+
+        while True:
+            name = self.faker.word()
+            if not self.keeper.get("swift", "objects", "name",
+                                   lambda x: x == name, list_args=[container]):
+                break
+
+        try:
+            log.info("Creating object with name {0} in container {1}".
+                     format(name, container.name))
+            created = self.native.objects.create(container, name,
+                                                 self.faker.paragraph())
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return created
+
+    @uncache
+    def object_delete(self):
+        containers = self.keeper.get(
+            "swift", "containers", "id",
+            lambda x: x in self.cache["swift"]["containers"])
+
+        if len(containers) > 0:
+            container = random.choice(containers)
+        else:
+            log.warning("There is no containers for deleting object, "
+                        "skipping...")
+            return
+
+        objects = self.keeper.get(
+            "swift", "objects", "id",
+            lambda x: x in self.cache["swift"]["objects"],
+            list_args=[container])
+
+        if len(objects) > 0:
+            object = random.choice(objects)
+        else:
+            log.warning("There is no objects for removing, skipping...")
+            return
+
+        try:
+            log.info("Removing object {0} from container {1}".
+                     format(object.id, container.id))
+            self.native.objects.delete(container, object)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        return object.id

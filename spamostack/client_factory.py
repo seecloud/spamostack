@@ -1492,7 +1492,7 @@ class Swift(object):
         got = self.native.get_container(
             to_get, marker, limit, prefix, delimiter, end_marker, path,
             full_listing, headers, query_string)[0]
-        got["id"] = got["x-trans-id"]
+        got["id"] = to_get
         got["name"] = to_get
 
         return got
@@ -1593,7 +1593,7 @@ class Swift(object):
         got = self.native.get_object(in_container, to_get, resp_chunk_size,
                                      query_string, response_dict,
                                      headers)[0]
-        got["id"] = got["x-trans-id"]
+        got["id"] = to_get
         got["name"] = to_get
 
         return got
