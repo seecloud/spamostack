@@ -226,7 +226,6 @@ class Neutron(object):
     def _address_scope_delete(self, id):
         return self.native.delete_address_scope(id)
 
-    @_lst_to_accessible("address_scopes")
     def _address_scope_find(self, **kwargs):
         return self._address_scope_list(**kwargs)
 
@@ -252,7 +251,6 @@ class Neutron(object):
     def _agent_find(self, **kwargs):
         return self._agent_list(**kwargs)
 
-    @_obj_to_accessible("agent")
     def _agent_get(self, id, **kwargs):
         return self.native.show_agent(id, **kwargs)
 
@@ -275,7 +273,6 @@ class Neutron(object):
     def _bandwidth_limit_rule_delete(self, id):
         return self.native.delete_bandwidth_limit_rule(id)
 
-    @_lst_to_accessible("bandwidth_limit_rules")
     def _bandwidth_limit_rule_find(self, **kwargs):
         return self._bandwidth_limit_rule_list(**kwargs)
 
@@ -302,7 +299,6 @@ class Neutron(object):
     def _bgp_peer_delete(self, id):
         return self.native.delete_bgp_peer(id)
 
-    @_lst_to_accessible("bgp_peers")
     def _bgp_peer_find(self, **kwargs):
         return self._bgp_peer_list(**kwargs)
 
@@ -329,7 +325,6 @@ class Neutron(object):
     def _bgp_speaker_delete(self, id):
         return self.native.delete_bgp_speaker(id)
 
-    @_lst_to_accessible("bgp_speakers")
     def _bgp_speaker_find(self, **kwargs):
         return self._bgp_speaker_list(**kwargs)
 
@@ -356,7 +351,6 @@ class Neutron(object):
     def _dscp_marking_rule_delete(self, id):
         return self.native.delete_dscp_marking_rule(id)
 
-    @_lst_to_accessible("dscp_marking_rules")
     def _dscp_marking_rule_find(self, **kwargs):
         return self._dscp_marking_rule_list(**kwargs)
 
@@ -383,7 +377,6 @@ class Neutron(object):
     def _endpoint_group_delete(self, id):
         return self.native.delete_endpoint_group(id)
 
-    @_lst_to_accessible("endpoint_groups")
     def _endpoint_group_find(self, **kwargs):
         return self._endpoint_group_list(**kwargs)
 
@@ -410,7 +403,6 @@ class Neutron(object):
     def _ext_delete(self, id):
         return self.native.delete_ext(id)
 
-    @_lst_to_accessible("exts")
     def _ext_find(self, **kwargs):
         return self._ext_list(**kwargs)
 
@@ -429,7 +421,6 @@ class Neutron(object):
 
     # ----------------------------------------------------------------------- #
 
-    @_lst_to_accessible("extensions")
     def _extension_find(self, **kwargs):
         return self._extension_list(**kwargs)
 
@@ -451,7 +442,6 @@ class Neutron(object):
     def _firewall_delete(self, id):
         return self.native.delete_firewall(id)
 
-    @_lst_to_accessible("firewalls")
     def _firewall_find(self, **kwargs):
         return self._firewall_list(**kwargs)
 
@@ -478,7 +468,6 @@ class Neutron(object):
     def _firewall_policy_delete(self, id):
         return self.native.delete_firewall_policy(id)
 
-    @_lst_to_accessible("firewall_policys")
     def _firewall_policy_find(self, **kwargs):
         return self._firewall_policy_list(**kwargs)
 
@@ -505,7 +494,6 @@ class Neutron(object):
     def _firewall_rule_delete(self, id):
         return self.native.delete_firewall_rule(id)
 
-    @_lst_to_accessible("firewall_rules")
     def _firewall_rule_find(self, **kwargs):
         return self._firewall_rule_list(**kwargs)
 
@@ -532,7 +520,6 @@ class Neutron(object):
     def _flavor_delete(self, id):
         return self.native.delete_flavor(id)
 
-    @_lst_to_accessible("flavors")
     def _flavor_find(self, **kwargs):
         return self._flavor_list(**kwargs)
 
@@ -559,7 +546,6 @@ class Neutron(object):
     def _floatingip_delete(self, id):
         return self.native.delete_floatingip(id)
 
-    @_lst_to_accessible("floatingips")
     def _floatingip_find(self, **kwargs):
         return self._floatingip_list(**kwargs)
 
@@ -586,7 +572,6 @@ class Neutron(object):
     def _gateway_device_delete(self, id):
         return self.native.delete_gateway_device(id)
 
-    @_lst_to_accessible("gateway_devices")
     def _gateway_device_find(self, **kwargs):
         return self._gateway_device_list(**kwargs)
 
@@ -613,7 +598,6 @@ class Neutron(object):
     def _health_monitor_delete(self, id):
         return self.native.delete_health_monitor(id)
 
-    @_lst_to_accessible("health_monitors")
     def _health_monitor_find(self, **kwargs):
         return self._health_monitor_list(**kwargs)
 
@@ -640,7 +624,6 @@ class Neutron(object):
     def _ikepolicy_delete(self, id):
         return self.native.delete_ikepolicy(id)
 
-    @_lst_to_accessible("ikepolicys")
     def _ikepolicy_find(self, **kwargs):
         return self._ikepolicy_list(**kwargs)
 
@@ -667,7 +650,6 @@ class Neutron(object):
     def _ipsec_site_connection_delete(self, id):
         return self.native.delete_ipsec_site_connection(id)
 
-    @_lst_to_accessible("ipsec_site_connections")
     def _ipsec_site_connection_find(self, **kwargs):
         return self._ipsec_site_connection_list(**kwargs)
 
@@ -694,7 +676,6 @@ class Neutron(object):
     def _ipsecpolicy_delete(self, id):
         return self.native.delete_ipsecpolicy(id)
 
-    @_lst_to_accessible("ipsecpolicys")
     def _ipsecpolicy_find(self, **kwargs):
         return self._ipsecpolicy_list(**kwargs)
 
@@ -721,7 +702,6 @@ class Neutron(object):
     def _lbaas_healthmonitor_delete(self, id):
         return self.native.delete_lbaas_healthmonitor(id)
 
-    @_lst_to_accessible("lbaas_healthmonitors")
     def _lbaas_healthmonitor_find(self, **kwargs):
         return self._lbaas_healthmonitor_list(**kwargs)
 
@@ -748,7 +728,6 @@ class Neutron(object):
     def _lbaas_l7policy_delete(self, id):
         return self.native.delete_lbaas_l7policy(id)
 
-    @_lst_to_accessible("lbaas_l7policys")
     def _lbaas_l7policy_find(self, **kwargs):
         return self._lbaas_l7policy_list(**kwargs)
 
@@ -775,7 +754,6 @@ class Neutron(object):
     def _lbaas_l7rule_delete(self, id):
         return self.native.delete_lbaas_l7rule(id)
 
-    @_lst_to_accessible("lbaas_l7rules")
     def _lbaas_l7rule_find(self, **kwargs):
         return self._lbaas_l7rule_list(**kwargs)
 
@@ -802,7 +780,6 @@ class Neutron(object):
     def _lbaas_member_delete(self, id):
         return self.native.delete_lbaas_member(id)
 
-    @_lst_to_accessible("lbaas_members")
     def _lbaas_member_find(self, **kwargs):
         return self._lbaas_member_list(**kwargs)
 
@@ -829,7 +806,6 @@ class Neutron(object):
     def _lbaas_pool_delete(self, id):
         return self.native.delete_lbaas_pool(id)
 
-    @_lst_to_accessible("lbaas_pools")
     def _lbaas_pool_find(self, **kwargs):
         return self._lbaas_pool_list(**kwargs)
 
@@ -856,7 +832,6 @@ class Neutron(object):
     def _listener_delete(self, id):
         return self.native.delete_listener(id)
 
-    @_lst_to_accessible("listeners")
     def _listener_find(self, **kwargs):
         return self._listener_list(**kwargs)
 
@@ -883,7 +858,6 @@ class Neutron(object):
     def _loadbalancer_delete(self, id):
         return self.native.delete_loadbalancer(id)
 
-    @_lst_to_accessible("loadbalancers")
     def _loadbalancer_find(self, **kwargs):
         return self._loadbalancer_list(**kwargs)
 
@@ -910,7 +884,6 @@ class Neutron(object):
     def _member_delete(self, id):
         return self.native.delete_member(id)
 
-    @_lst_to_accessible("members")
     def _member_find(self, **kwargs):
         return self._member_list(**kwargs)
 
@@ -937,7 +910,6 @@ class Neutron(object):
     def _metering_label_delete(self, id):
         return self.native.delete_metering_label(id)
 
-    @_lst_to_accessible("metering_labels")
     def _metering_label_find(self, **kwargs):
         return self._metering_label_list(**kwargs)
 
@@ -959,7 +931,6 @@ class Neutron(object):
     def _metering_label_rule_delete(self, id):
         return self.native.delete_metering_label_rule(id)
 
-    @_lst_to_accessible("metering_label_rules")
     def _metering_label_rule_find(self, **kwargs):
         return self._metering_label_rule_list(**kwargs)
 
@@ -981,7 +952,6 @@ class Neutron(object):
     def _network_delete(self, id):
         return self.native.delete_network(id)
 
-    @_lst_to_accessible("networks")
     def _network_find(self, **kwargs):
         return self._network_list(**kwargs)
 
@@ -1000,7 +970,6 @@ class Neutron(object):
 
     # ----------------------------------------------------------------------- #
 
-    @_lst_to_accessible("network_ip_availabilities")
     def _network_ip_availability_find(self, **kwargs):
         return self._network_ip_availability_list(**kwargs)
 
@@ -1022,7 +991,6 @@ class Neutron(object):
     def _network_gateway_delete(self, id):
         return self.native.delete_network_gateway(id)
 
-    @_lst_to_accessible("network_gateways")
     def _network_gateway_find(self, **kwargs):
         return self._network_gateway_list(**kwargs)
 
@@ -1049,7 +1017,6 @@ class Neutron(object):
     def _pool_delete(self, id):
         return self.native.delete_pool(id)
 
-    @_lst_to_accessible("pools")
     def _pool_find(self, **kwargs):
         return self._pool_list(**kwargs)
 
@@ -1076,7 +1043,6 @@ class Neutron(object):
     def _port_delete(self, id):
         return self.native.delete_port(id)
 
-    @_lst_to_accessible("ports")
     def _port_find(self, **kwargs):
         return self._port_list(**kwargs)
 
@@ -1103,7 +1069,6 @@ class Neutron(object):
     def _qos_policy_delete(self, id):
         return self.native.delete_qos_policy(id)
 
-    @_lst_to_accessible("qos_policys")
     def _qos_policy_find(self, **kwargs):
         return self._qos_policy_list(**kwargs)
 
@@ -1130,7 +1095,6 @@ class Neutron(object):
     def _qos_queue_delete(self, id):
         return self.native.delete_qos_queue(id)
 
-    @_lst_to_accessible("qos_queues")
     def _qos_queue_find(self, **kwargs):
         return self._qos_queue_list(**kwargs)
 
@@ -1152,7 +1116,6 @@ class Neutron(object):
     def _rbac_policy_delete(self, id):
         return self.native.delete_rbac_policy(id)
 
-    @_lst_to_accessible("rbac_policys")
     def _rbac_policy_find(self, **kwargs):
         return self._rbac_policy_list(**kwargs)
 
@@ -1179,7 +1142,6 @@ class Neutron(object):
     def _router_delete(self, id):
         return self.native.delete_router(id)
 
-    @_lst_to_accessible("routers")
     def _router_find(self, **kwargs):
         return self._router_list(**kwargs)
 
@@ -1206,7 +1168,6 @@ class Neutron(object):
     def _security_group_delete(self, id):
         return self.native.delete_security_group(id)
 
-    @_lst_to_accessible("security_groups")
     def _security_group_find(self, **kwargs):
         return self._security_group_list(**kwargs)
 
@@ -1233,7 +1194,6 @@ class Neutron(object):
     def _security_group_rule_delete(self, id):
         return self.native.delete_security_group_rule(id)
 
-    @_lst_to_accessible("security_group_rules")
     def _security_group_rule_find(self, **kwargs):
         return self._security_group_rule_list(**kwargs)
 
@@ -1255,7 +1215,6 @@ class Neutron(object):
     def _service_profile_delete(self, id):
         return self.native.delete_service_profile(id)
 
-    @_lst_to_accessible("service_profiles")
     def _service_profile_find(self, **kwargs):
         return self._service_profile_list(**kwargs)
 
@@ -1282,7 +1241,6 @@ class Neutron(object):
     def _subnet_delete(self, id):
         return self.native.delete_subnet(id)
 
-    @_lst_to_accessible("subnets")
     def _subnet_find(self, **kwargs):
         return self._subnet_list(**kwargs)
 
@@ -1309,7 +1267,6 @@ class Neutron(object):
     def _subnetpool_delete(self, id):
         return self.native.delete_subnetpool(id)
 
-    @_lst_to_accessible("subnetpools")
     def _subnetpool_find(self, **kwargs):
         return self._subnetpool_list(**kwargs)
 
@@ -1336,7 +1293,6 @@ class Neutron(object):
     def _trunk_delete(self, id):
         return self.native.delete_trunk(id)
 
-    @_lst_to_accessible("trunks")
     def _trunk_find(self, **kwargs):
         return self._trunk_list(**kwargs)
 
@@ -1363,7 +1319,6 @@ class Neutron(object):
     def _vip_delete(self, id):
         return self.native.delete_vip(id)
 
-    @_lst_to_accessible("vips")
     def _vip_find(self, **kwargs):
         return self._vip_list(**kwargs)
 
@@ -1390,7 +1345,6 @@ class Neutron(object):
     def _vpnservice_delete(self, id):
         return self.native.delete_vpnservice(id)
 
-    @_lst_to_accessible("vpnservices")
     def _vpnservice_find(self, **kwargs):
         return self._vpnservice_list(**kwargs)
 
@@ -1412,7 +1366,6 @@ class Neutron(object):
     def _quota_delete(self, id):
         return self.native.delete_quota(id)
 
-    @_lst_to_accessible("quotas")
     def _quota_find(self, **kwargs):
         return self._quota_list(**kwargs)
 

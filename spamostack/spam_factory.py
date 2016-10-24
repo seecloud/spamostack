@@ -445,7 +445,8 @@ class SpamGlance(object):
     def image_delete(self):
         images = self.keeper.get("glance", "images", None,
                                  (lambda x, y: not x.startswith("cirros") and
-                                  y in self.cache["glance"]["images"]))
+                                  y in self.cache["glance"]["images"]),
+                                 "name", "id")
 
         if len(images) > 0:
             image = random.choice(images)
@@ -825,6 +826,48 @@ class SpamNeutron(object):
         else:
             log.warning("There is no network for removing, skipping...")
             return
+
+        # Deleting all the sub-resources of the network
+        # --------------------------------------------------------------------#
+
+        routers = self.keeper.get("neutron", "routers", None,
+                                  (lambda x, y: x == network.id and
+                                   y in self.cache["neutron"]["routers"]),
+                                  "network_id", "id")
+
+        subnets = self.keeper.get("neutron", "subnets", None,
+                                  (lambda x, y: x == network.id and
+                                   y in self.cache["neutron"]["routers"]),
+                                  "network_id", "id")
+
+        ports = self.keeper.get("neutron", "ports", None,
+                                (lambda x, y: x == network.id and
+                                 y in self.cache["neutron"]["ports"]),
+                                "network_id", "id")
+
+        floatingips = self.keeper.get(
+            "neutron", "floatingips", None,
+            (lambda x, y: x == network.id and
+             y in self.cache["neutron"]["floatingips"]),
+            "network_id", "id")
+
+        try:
+            for router in routers:
+                self.native.routers.delete(router.id)
+
+            for subnet in subnets:
+                self.native.subnets.delete(subnet.id)
+
+            for port in ports:
+                self.native.ports.delete(port.id)
+
+            for floatingip in floatingips:
+                self.native.floatingips.delete(floatingip.id)
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            return
+
+        # --------------------------------------------------------------------#
 
         try:
             log.info("Deleting network with id {}".format(network.id))
@@ -1270,6 +1313,7 @@ class SpamNova(object):
             keypair = random.choice(keypairs)
         else:
             log.warning("There is no keypairs for removing, skipping...")
+            return
 
         try:
             log.info("Removing keypair {}".format(keypair.id))
