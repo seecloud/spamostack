@@ -15,7 +15,9 @@
 
 import logging
 import random
+import traceback
 
+from spam_factory import SpamFactory
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +35,8 @@ class Keeper(object):
 
         self.cache = cache
         self.client_factory = client_factory
+        self.spam_factory = SpamFactory(self.cache, self.client_factory.user,
+                                        self)
         self.default_init()
 
     def default_init(self):
@@ -119,6 +123,7 @@ class Keeper(object):
                         result.append(el)
             except Exception as exc:
                 log.critical("Exception: {}".format(exc))
+                traceback.print_exc()
                 pass
         elif func is None and param is not None:
             try:
@@ -128,6 +133,7 @@ class Keeper(object):
                     result = getattr(resource, param)(*args, **kwargs)
             except Exception as exc:
                 log.critical("Exception: {}".format(exc))
+                traceback.print_exc()
                 pass
         elif func is not None and param is None:
             result = []
@@ -140,7 +146,8 @@ class Keeper(object):
                     if func(*params):
                         result.append(el)
             except Exception as exc:
-                log.critical("Exception: ".format(exc))
+                log.critical("Exception: {}".format(exc))
+                traceback.print_exc()
                 pass
         elif func is None and param is None:
             possibilities = list(resource.list(*list_args))
@@ -158,17 +165,7 @@ class Keeper(object):
         """
 
         existing_components = ["cinder", "glance", "keystone", "neutron",
-                               "nova"]
-
-        binded_resources = {"neutron":
-                            ["subnets", "ports", "routers", "networks"]}
-
-        exceptions = [self.get("keystone", "users", "name",
-                               lambda x: x == "admin")[0].id,
-                      self.get("keystone", "projects", "name",
-                               lambda x: x == "admin")[0].id,
-                      self.get("glance", "images", "name",
-                               lambda x: x == "cirros-0.3.4-x86_64-uec")[0].id]
+                               "nova", "swift"]
 
         if component_names == ["all"]:
             components = existing_components
@@ -178,25 +175,15 @@ class Keeper(object):
         for client_name in components:
             log.debug("Start cleaning for {} client".format(client_name))
 
-            client = getattr(self.client_factory, client_name)()
-
-            if client_name in binded_resources:
-                resources = binded_resources[client_name]
-            else:
-                resources = self.cache[client_name].keys()
+            client = getattr(self.spam_factory, "spam_" + client_name)()
+            resources = self.cache[client_name].keys()
 
             for resource_name in resources:
                 log.debug("Cleaning {} resource".format(resource_name))
-                resource_obj = getattr(client, resource_name)
-                for id in self.cache[client_name][resource_name].keys():
-                    if id not in exceptions:
-                        if resource_name in ["volumes"]:
-                            resource_obj.detach(id)
-                        try:
-                            resource_obj.delete(id)
-                        except Exception as exc:
-                            raise exc
-                    del self.cache[client_name][resource_name][id]
+                resource_obj = getattr(client.spam, resource_name)
+                while resource_obj.delete():
+                        pass
+
             if client_name == "keystone":
                 for key in self.cache["users"].keys():
                     del self.cache["users"][key]
