@@ -15,9 +15,9 @@
 
 import logging
 import random
+import traceback
 
 from spam_factory import SpamFactory
-
 
 log = logging.getLogger(__name__)
 
@@ -123,6 +123,7 @@ class Keeper(object):
                         result.append(el)
             except Exception as exc:
                 log.critical("Exception: {}".format(exc))
+                traceback.print_exc()
                 pass
         elif func is None and param is not None:
             try:
@@ -132,6 +133,7 @@ class Keeper(object):
                     result = getattr(resource, param)(*args, **kwargs)
             except Exception as exc:
                 log.critical("Exception: {}".format(exc))
+                traceback.print_exc()
                 pass
         elif func is not None and param is None:
             result = []
@@ -144,7 +146,8 @@ class Keeper(object):
                     if func(*params):
                         result.append(el)
             except Exception as exc:
-                log.critical("Exception: ".format(exc))
+                log.critical("Exception: {}".format(exc))
+                traceback.print_exc()
                 pass
         elif func is None and param is None:
             possibilities = list(resource.list(*list_args))

@@ -15,6 +15,7 @@
 
 import logging
 import random
+import traceback
 
 import client_factory
 from Crypto.PublicKey import RSA
@@ -266,6 +267,7 @@ class SpamCinder(object):
                 volume, instance.id, volume.name)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return attached
@@ -287,6 +289,7 @@ class SpamCinder(object):
                 description="Volume with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         self.native.volumes.reset_state(created, "available", "detached")
@@ -310,6 +313,7 @@ class SpamCinder(object):
             detached = self.native.volumes.detach(volume)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return detached
@@ -332,7 +336,9 @@ class SpamCinder(object):
         try:
             log.info("Remove volume {}".format(volume.id))
             self.native.volumes.delete(volume)
-        except Exception:
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return volume.id
@@ -356,6 +362,7 @@ class SpamCinder(object):
                 volume=volume, new_size=volume.size + add_size)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return extended
@@ -383,7 +390,8 @@ class SpamCinder(object):
                 volume=volume, name=name,
                 description="Volume with name {}".format(name))
         except Exception as exc:
-            log.critical("Exception: ".format(exc))
+            log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -435,6 +443,7 @@ class SpamGlance(object):
                 container_format='bare', visibility='public')
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         self.native.images.upload(created.id, '')
@@ -459,6 +468,7 @@ class SpamGlance(object):
             self.native.images.delete(image.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return image.id
@@ -481,12 +491,12 @@ class SpamGlance(object):
             log.warning("There is no images for updating, skipping")
             return
 
-        # TO-DO: Make a normal warning logging
         try:
             log.info("Updating image {}".format(image.id))
             updated = self.native.images.update(image.id, name=name)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -543,6 +553,7 @@ class SpamKeystone(object):
                 description="Project {}".format(name), enabled=True)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         # quotas update
@@ -567,6 +578,7 @@ class SpamKeystone(object):
                 security_groups=-1, server_group_members=-1, server_groups=-1)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -578,19 +590,18 @@ class SpamKeystone(object):
                                     y in self.cache["keystone"]["projects"]),
                                    "name", "id")
 
-        # TO-DO: Make a normal warning logging
         if len(projects) > 0:
             project = random.choice(projects)
         else:
             log.warning("There is no projects for removing, skipping...")
             return
 
-        # TO-DO: Make a normal warning logging
         try:
             log.info("Removing project {}".format(project.name))
             self.native.projects.delete(project)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return project.id
@@ -607,7 +618,6 @@ class SpamKeystone(object):
                                     y in self.cache["keystone"]["projects"]),
                                    "name", "id")
 
-        # TO-DO: Make a normal warning logging
         if len(projects) > 0:
             project = random.choice(projects)
         else:
@@ -621,6 +631,7 @@ class SpamKeystone(object):
                 description="Project {}".format(name), enabled=True)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -646,7 +657,6 @@ class SpamKeystone(object):
             log.warning("There is no projects, skipping user creating...")
             return
 
-        # TO-DO: Make a normal warning logging
         try:
             log.info("Creating user with name {user_name}"
                      " in project {project}".format(user_name=name,
@@ -658,6 +668,7 @@ class SpamKeystone(object):
             log.info("User with id {} was created".format(created.id))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         try:
@@ -665,7 +676,8 @@ class SpamKeystone(object):
             self.native.roles.grant(
                 self.native.roles.find(name="admin"), created, project=project)
         except Exception as exc:
-            log.critical("Exception: ".format(exc))
+            log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         self.cache["users"][name] = {"username": created.name,
@@ -694,6 +706,7 @@ class SpamKeystone(object):
             self.native.users.delete(user)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return user.id
@@ -710,10 +723,10 @@ class SpamKeystone(object):
                                  y in self.cache["keystone"]["users"]),
                                 "name", "id")
 
-        # TO-DO: Make a normal warning logging
         if len(users) > 0:
             user = random.choice(users)
         else:
+            log.warning("There is no users for updating, skipping...")
             return
 
         log.info("Trying to update user {}".format(user.id))
@@ -739,7 +752,8 @@ class SpamKeystone(object):
                 password=password, email=email,
                 description="User with name {}".format(name), enabled=True)
         except Exception as exc:
-            log.critical("Exception: ".format(exc))
+            log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -811,6 +825,7 @@ class SpamNeutron(object):
                 shared=True)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -865,6 +880,7 @@ class SpamNeutron(object):
                 self.native.floatingips.delete(floatingip.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         # --------------------------------------------------------------------#
@@ -874,6 +890,7 @@ class SpamNeutron(object):
             self.native.networks.delete(network.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return network.id
@@ -900,7 +917,9 @@ class SpamNeutron(object):
             updated = self.native.networks.update(
                 network.id, name=name,
                 description="Network with name {}".format(name))
-        except Exception:
+        except Exception as exc:
+            log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -930,6 +949,7 @@ class SpamNeutron(object):
                 network_id=network.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -951,6 +971,7 @@ class SpamNeutron(object):
             self.native.ports.delete(port.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return port.id
@@ -979,6 +1000,7 @@ class SpamNeutron(object):
                 description="Port with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -995,7 +1017,9 @@ class SpamNeutron(object):
             log.info("Creating router with name {}".format(name))
             created = self.native.routers.create(
                 name=name, description="Router with name {}".format(name))
-        except Exception:
+        except Exception as exc:
+            log.critical("Excepttion: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1015,7 +1039,9 @@ class SpamNeutron(object):
         try:
             log.info("Removing router with id {}".format(router.id))
             self.native.routers.delete(router.id)
-        except Exception:
+        except Exception as exc:
+            log.critical("Excepttion: {}".format(exc))
+            traceback.print_exc()
             return
 
         return router.id
@@ -1044,6 +1070,7 @@ class SpamNeutron(object):
                 description="Router with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -1063,6 +1090,7 @@ class SpamNeutron(object):
                 description="Security group with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1086,6 +1114,7 @@ class SpamNeutron(object):
             self.native.security_groups.delete(security_group.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return security_group.id
@@ -1115,6 +1144,7 @@ class SpamNeutron(object):
                 description="Security group with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -1131,10 +1161,11 @@ class SpamNeutron(object):
             "neutron", "networks", "id",
             lambda x: x in self.cache["neutron"]["networks"])
 
-        # TO-DO: Make a normal warning logging
         if len(networks) > 0:
             network = random.choice(networks)
         else:
+            log.warning("There is no more networks for creating subnets, "
+                        "skipping...")
             return
 
         subnets = [self.keeper.get("neutron", "subnets", "get", None, subnet)
@@ -1149,6 +1180,7 @@ class SpamNeutron(object):
                 network_id=network.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1170,6 +1202,7 @@ class SpamNeutron(object):
             self.native.subnets.update(subnet.id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return subnet.id
@@ -1198,6 +1231,7 @@ class SpamNeutron(object):
                 description="Subnet with name {}".format(name))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -1261,6 +1295,7 @@ class SpamNova(object):
                 disk=random.choice(volume_sizes))
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1282,6 +1317,7 @@ class SpamNova(object):
             self.native.flavors.delete(flavor)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return flavor.id
@@ -1300,6 +1336,7 @@ class SpamNova(object):
             created = self.native.keypairs.create(name=name, public_key=key)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1320,6 +1357,7 @@ class SpamNova(object):
             self.native.keypairs.delete(keypair)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return keypair.id
@@ -1366,6 +1404,7 @@ class SpamNova(object):
                 nics=[{"net-id": network.id}])
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1387,6 +1426,7 @@ class SpamNova(object):
             self.native.servers.delete(server)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return server.id
@@ -1413,6 +1453,7 @@ class SpamNova(object):
             updated = self.native.servers.update(server=server, name=name)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return updated
@@ -1464,6 +1505,7 @@ class SpamSwift(object):
             created = self.native.containers.create(name)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1489,6 +1531,7 @@ class SpamSwift(object):
             self.native.containers.delete(container)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return container.id
@@ -1519,6 +1562,7 @@ class SpamSwift(object):
                                                  self.faker.paragraph())
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return created
@@ -1553,6 +1597,7 @@ class SpamSwift(object):
             self.native.objects.delete(container, object)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
+            traceback.print_exc()
             return
 
         return object.id
