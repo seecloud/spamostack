@@ -9,5 +9,6 @@ python-openstackclient>=2.1.0
 leveldb>=0.194
 Faker>=0.7.3
 coloredlogs>=5.1.1
+pycrypto>=2.6
 pbr>=1.6
 setuptools>=16.0
