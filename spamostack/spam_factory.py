@@ -16,6 +16,7 @@
 import logging
 import random
 import traceback
+import uuid
 
 import client_factory
 from Crypto.PublicKey import RSA
@@ -1288,11 +1289,13 @@ class SpamNova(object):
         volume_sizes = [1, 2, 5, 10, 20, 40, 50, 100, 200, 500]
 
         try:
+            flavor_id = "spam-{}".format(uuid.uuid4())
             log.info("Creating flavor with name {}".format(name))
             created = self.native.flavors.create(
                 name=name, ram=random.choice(ram_sizes),
                 vcpus=random.choice(vcpus_num),
-                disk=random.choice(volume_sizes))
+                disk=random.choice(volume_sizes),
+                flavorid=flavor_id)
         except Exception as exc:
             log.critical("Exception: {}".format(exc))
             traceback.print_exc()
@@ -1307,8 +1310,17 @@ class SpamNova(object):
             lambda x: x in self.cache["nova"]["flavors"])
 
         if len(flavors) > 0:
-            flavor = random.choice(flavors)
+            for fl in flavors:
+                if fl.id.startswith("spam-"):
+                    flavor = fl
+                    break
+                else:
+                    flavor = None
         else:
+            log.warning("There is no flavors for removing, skipping")
+            return
+
+        if flavor is None:
             log.warning("There is no flavors for removing, skipping")
             return
 

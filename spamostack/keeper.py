@@ -16,7 +16,6 @@
 import logging
 import random
 import traceback
-import uuid
 
 from spam_factory import SpamFactory
 
@@ -120,10 +119,6 @@ class Keeper(object):
                     else:
                         probe = getattr(el, param)(*args, **kwargs)
 
-                    if (resource_name == "flavors"
-                            and not self.validate_uuid4(probe)):
-                        continue
-
                     if func(probe):
                         result.append(el)
             except Exception as exc:
@@ -160,22 +155,6 @@ class Keeper(object):
                 result = random.choice(possibilities)
 
         return result
-
-    @staticmethod
-    def validate_uuid4(uuid_string):
-        """This method allow us validate uuid4 for keeping all standard flavors
-
-        @param uuid_string: UUID, with (or without) slashes
-        @type uuid_string: `str`, or `object` with uuid representation
-        """
-        uuid_string = uuid_string.replace("-", "")
-
-        try:
-            val = uuid.UUID(uuid_string, version=4)
-        except ValueError:
-            return False
-
-        return val.hex == uuid_string
 
     def clean(self, component_names):
         """Delete all the resources for specific component
