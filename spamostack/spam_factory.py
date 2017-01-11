@@ -1305,22 +1305,15 @@ class SpamNova(object):
 
     @uncache
     def flavor_delete(self):
-        flavors = self.keeper.get(
-            "nova", "flavors", "id",
-            lambda x: x in self.cache["nova"]["flavors"])
+        flavors = self.keeper.get("nova", "flavors", None,
+                                  (lambda x: x.startswith("spam-") and
+                                      x in self.cache["nova"]
+                                      ["flavors"]),
+                                  "id")
 
         if len(flavors) > 0:
-            for fl in flavors:
-                if fl.id.startswith("spam-"):
-                    flavor = fl
-                    break
-                else:
-                    flavor = None
+            flavor = random.choice(flavors)
         else:
-            log.warning("There is no flavors for removing, skipping")
-            return
-
-        if flavor is None:
             log.warning("There is no flavors for removing, skipping")
             return
 
